@@ -7,9 +7,9 @@ interface LandingProps {
 }
 
 /**
- * Full-viewport landing page matching OKPalette's minimal monochrome aesthetic.
- * Central 3D revolving text + upload control.
- * Top-right: "Copy Code" button copies the core module source.
+ * Full-viewport landing page matching OKPalette's dark charcoal monochrome aesthetic.
+ * Central 3D serif revolving text + white upload box.
+ * Top-right: round "Copy Code" button copies the core module source.
  */
 export function Landing({ onImageSelected }: LandingProps) {
   const [copied, setCopied] = useState(false);
@@ -22,7 +22,7 @@ export function Landing({ onImageSelected }: LandingProps) {
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch (e) {
+    } catch {
       setCopied(false);
     }
   };
@@ -41,7 +41,7 @@ export function Landing({ onImageSelected }: LandingProps) {
 
   return (
     <div
-      className="fixed inset-0 bg-white text-black flex flex-col items-center justify-center overflow-hidden"
+      className="fixed inset-0 bg-charcoal text-white flex flex-col items-center justify-center overflow-hidden"
       onDragOver={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -50,38 +50,33 @@ export function Landing({ onImageSelected }: LandingProps) {
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
     >
-      {/* OKPalette-style top chrome */}
-      <div className="fixed top-0 left-0 right-0 h-12 border-b border-black flex items-center justify-between px-4 bg-white z-50">
-        <div className="text-[13px] font-mono font-bold tracking-tighter">
-          SVG_MKR
-        </div>
-        <button
-          onClick={handleCopyCode}
-          className="text-[11px] font-mono uppercase tracking-widest border border-black px-3 py-1 rounded-full hover:bg-black hover:text-white transition-colors"
-          title="Copy the pure core module source"
-        >
-          {copied ? 'COPIED!' : 'Copy Code'}
-        </button>
-      </div>
+      {/* Top-right round Copy Code button */}
+      <button
+        onClick={handleCopyCode}
+        className="fixed top-4 right-4 z-50 w-12 h-12 rounded-full bg-charcoal border border-white text-white hover:bg-white hover:text-charcoal transition-colors flex items-center justify-center text-[9px] uppercase tracking-widest"
+        title="Copy the pure core module source"
+      >
+        {copied ? 'COPIED!' : 'Copy Code'}
+      </button>
 
-      {/* Central revolving text */}
+      {/* Central revolving serif text */}
       <div className="flex-1 flex items-center justify-center">
         <RevolvingText text="SVG_MKR" />
       </div>
 
-      {/* Upload zone (centered) */}
+      {/* Upload zone — large white rectangular box with black monospace */}
       <div className="mb-12">
         <UploadZone onFileSelect={onImageSelected} />
       </div>
 
       {/* Subtle footer */}
-      <div className="fixed bottom-0 left-0 right-0 h-10 border-t border-black flex items-center justify-center px-4 text-[10px] font-mono uppercase tracking-wider opacity-40 bg-white z-50">
+      <div className="fixed bottom-0 left-0 right-0 h-10 border-t border-white flex items-center justify-center px-4 text-[10px] font-mono uppercase tracking-wider opacity-40 bg-charcoal z-50">
         Image to SVG Converter &middot; PWA
       </div>
 
       {/* Drag-over hint */}
       {dragOver && (
-        <div className="fixed inset-0 bg-black/5 border-2 border-dashed border-black flex items-center justify-center text-[13px] font-mono z-50 pointer-events-none">
+        <div className="fixed inset-0 bg-white/10 border-2 border-dashed border-white flex items-center justify-center text-[13px] font-mono text-white z-50 pointer-events-none">
           DROP TO CONVERT
         </div>
       )}

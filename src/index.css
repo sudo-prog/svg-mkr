@@ -2,24 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+@theme {
+  --color-charcoal: #292f2f;
+}
+
 :root {
-  --mkr-black: #000;
-  --mkr-white: #fff;
-  --mkr-gray: #666;
+  --mkr-charcoal: #292f2f;
+  --mkr-white: #ffffff;
+  --mkr-black: #0a0f0f;
 }
 
 body {
   margin: 0;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  background: var(--mkr-white);
-  color: var(--mkr-black);
+  font-family: 'Iosevka Web', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  background: var(--mkr-charcoal);
+  color: var(--mkr-white);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #000 #f0f0f0;
+  scrollbar-color: var(--mkr-white) #2a2f2f;
 }
 
 button {

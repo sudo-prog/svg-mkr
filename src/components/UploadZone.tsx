@@ -10,8 +10,10 @@ interface UploadZoneProps {
 const ACCEPT_ATTR = 'image/*;capture=camera';
 
 /**
- * Centered, full-viewport upload control matching OKPalette's minimal aesthetic.
- * Handles file picker (Files / Camera) and full-page drag-and-drop.
+ * Centered upload control matching OKPalette's aesthetic:
+ * - Large white rectangular upload area
+ * - Black monospace text (#0a0f0f)
+ * - Handles file picker (Files / Camera) and full-page drag-and-drop.
  */
 export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
   const fileInputRef = useCallback((el: HTMLInputElement | null) => {
@@ -46,31 +48,40 @@ export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-white/80 backdrop-blur pointer-events-none">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-charcoal/80 backdrop-blur pointer-events-none">
       <div
         className={`relative flex flex-col items-center gap-3 ${
           isLoading ? 'opacity-50 pointer-events-none' : ''
         }`}
       >
-        <button
+        {/* Large white rectangular upload box with black monospace text */}
+        <div
           onClick={openPicker}
-          disabled={isLoading}
-          className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-black text-[13px] font-mono font-bold tracking-tight hover:bg-black hover:text-white transition-colors disabled:opacity-50"
+          className="w-80 h-48 bg-white border border-white rounded flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors"
+          style={{ borderWidth: 1 }}
         >
-          <Upload size={16} />
-          From Files
-        </button>
+          <div className="text-center">
+            <Upload className="mx-auto mb-2 text-charcoal" size={20} />
+            <span className="block text-[11px] font-mono font-bold text-charcoal uppercase tracking-wider">
+              Click to Upload Image / Drop Here
+            </span>
+            <span className="block text-[10px] font-mono text-charcoal opacity-60 mt-1">
+              or press ⌘V
+            </span>
+          </div>
+        </div>
+
         <button
           onClick={openCamera}
           disabled={isLoading}
-          className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-black text-[13px] font-mono font-bold tracking-tight hover:bg-black hover:text-white transition-colors disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-white text-[13px] font-mono font-bold text-white hover:bg-white hover:text-charcoal transition-colors disabled:opacity-50"
         >
           <Camera size={16} />
           From Camera Roll
         </button>
         <label
           htmlFor="dropzone-file"
-          className="mt-2 text-[10px] uppercase tracking-wider opacity-40 cursor-pointer"
+          className="mt-2 text-[10px] font-mono text-white uppercase tracking-wider cursor-pointer"
         >
           or drop an image anywhere
         </label>
