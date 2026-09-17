@@ -41,7 +41,7 @@ export function RevolvingText({ text = 'SVG_MKR', className = '' }: RevolvingTex
   const startAuto = () => {
     if (autoRotId.current) return;
     const tick = () => {
-      setRotationY(r => r + 0.04);
+      setRotationY(r => r + 0.008);
       autoRotId.current = requestAnimationFrame(tick);
     };
     autoRotId.current = requestAnimationFrame(tick);
@@ -94,22 +94,29 @@ export function RevolvingText({ text = 'SVG_MKR', className = '' }: RevolvingTex
   // Start auto-rotation.
   if (!autoRotId.current) startAuto();
 
-  // Radius for the ring of letters — large, wide scatter in 3D space.
-  const radius = 200;
+  // Scatter letters in 3D space at varying depths and positions,
+  // similar to OKPalette's aesthetic where letters float at different
+  // distances from the viewer around the central content area.
+  const radius = 220;
+  const spread = 48; // vertical spread half-extent
 
   const getLetterStyle = (index: number): React.CSSProperties => {
-    const angle = (index / letters.length) * Math.PI * 2 - Math.PI / 2;
-    const z = radius * Math.sin(angle);
-    // Half-tone dithering when behind the front plane (z < 0).
-    const behind = z < 0;
+    const total = letters.length;
+    // Distribute each letter along a gentle arc with varying Z-depth
+    const t = index / (total - 1); // 0..1
+    const angle = t * Math.PI - Math.PI / 2; // -90° to +90° arc
+    const yOffset = Math.sin(angle) * spread;
+    // Vary the Z depth per letter so they don't all sit on one ring
+    const zDepth = radius * 0.6 + Math.cos(angle) * radius * 0.4;
+    const behind = t < 0.2 || t > 0.8; // letters near ends wrap behind
     return {
       position: 'absolute' as const,
       left: '50%',
       top: '50%',
-      transform: `rotateY(${(index / letters.length) * 360}deg) translateZ(${radius}px)`,
-      filter: behind ? 'contrast(1.2) brightness(0.45)' : 'none',
-      opacity: behind ? 0.45 : 1,
-      fontFamily: '"Times New Roman", Times, "Times New Roman", Georgia, serif',
+      transform: `rotateY(${t * 360}deg) translateZ(${zDepth}px) translate(${yOffset > 0 ? yOffset : -yOffset}px)`,
+      filter: behind ? 'contrast(1.5) brightness(0.3)' : 'none',
+      opacity: behind ? 0.25 : 1,
+      fontFamily: '"Times New Roman", Times, Georgia, serif',
       fontSize: '72px',
       fontWeight: 700,
       color: '#fff',

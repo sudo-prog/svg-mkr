@@ -54,10 +54,10 @@ export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
           isLoading ? 'opacity-50 pointer-events-none' : ''
         }`}
       >
-        {/* Large white rectangular upload box with black monospace text */}
+        {/* Large white rectangular upload box with charcoal monospace text */}
         <div
           onClick={openPicker}
-          className="w-80 h-48 bg-white border border-white rounded flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors"
+          className="w-80 h-48 bg-white border border-white flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors"
           style={{ borderWidth: 1 }}
         >
           <div className="text-center">
@@ -68,6 +68,17 @@ export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
           </div>
         </div>
 
+        {/* From Files button */}
+        <button
+          onClick={openPicker}
+          disabled={isLoading}
+          className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-white text-[13px] font-mono font-bold text-white hover:bg-white hover:text-charcoal transition-colors disabled:opacity-50"
+        >
+          <Upload size={16} />
+          From Files
+        </button>
+
+        {/* From Camera Roll button */}
         <button
           onClick={openCamera}
           disabled={isLoading}
