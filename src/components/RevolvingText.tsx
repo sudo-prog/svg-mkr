@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 interface RevolvingTextProps {
   text?: string;
@@ -7,15 +7,14 @@ interface RevolvingTextProps {
 
 /**
  * 3D revolving text ("SVG_MKR") with:
- *  - continuous Y-axis auto-rotation
+ *  - continuous Y-axis auto-rotation (slow, like OKPalette)
  *  - drag/swipe to spin with inertia
  *  - X-axis tilt clamped to ±20°
  *  - letters behind the front plane get a halftone/ASCII dither effect
  *
- * Large serif letters (Times New Roman / Garamond) scattered in 3D space,
+ * Large serif letters (72px) scattered in 3D space around the central area,
  * matching OKPalette's floating-letter spelling aesthetic.
- * Implemented as a pure CSS 3D transform scene so it is lightweight and
- * works without a WebGL runtime.
+ * Pure CSS 3D transforms — no WebGL runtime.
  */
 export function RevolvingText({ text = 'SVG_MKR', className = '' }: RevolvingTextProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -27,8 +26,8 @@ export function RevolvingText({ text = 'SVG_MKR', className = '' }: RevolvingTex
   const lastTime = useRef(0);
   const rafId = useRef<number | null>(null);
   const autoRotId = useRef<number | null>(null);
+  const hasStarted = useRef(false);
 
-  // Letters
   const letters = text.split('');
 
   // Stop auto-rotation during drag; resume after inertia settles.
@@ -38,14 +37,24 @@ export function RevolvingText({ text = 'SVG_MKR', className = '' }: RevolvingTex
       autoRotId.current = null;
     }
   };
+
   const startAuto = () => {
     if (autoRotId.current) return;
     const tick = () => {
-      setRotationY(r => r + 0.008);
+      setRotationY(r => r + 0.003); // very slow
       autoRotId.current = requestAnimationFrame(tick);
     };
     autoRotId.current = requestAnimationFrame(tick);
   };
+
+  // Start auto-rotation once on mount (not on every render).
+  useEffect(() => {
+    if (!hasStarted.current) {
+      hasStarted.current = true;
+      startAuto();
+    }
+    return () => stopAuto();
+  }, []);
 
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
@@ -59,9 +68,10 @@ export function RevolvingText({ text = 'SVG_MKR', className = '' }: RevolvingTex
   const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isDragging || !containerRef.current) return;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const dy = ('touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY) - (e.currentTarget as HTMLElement).getBoundingClientRect().top;
+    const rect = containerRef.current.getBoundingClientRect();
+    const dy = (e as any).touches ? (e as any).touches[0].clientY - rect.top : (e as React.MouseEvent).clientY - rect.top;
     const deltaTime = Date.now() - lastTime.current || 1;
-    setRotationY(r => r + (clientX - lastPos.current) * 0.2);
+    setRotationY(r => r + (clientX - lastPos.current) * 0.005);
     if (containerRef.current) {
       const h = containerRef.current.offsetHeight || 300;
       setTilt(Math.max(-20, Math.min(20, (dy / h) * 40 - 20)));
@@ -74,11 +84,11 @@ export function RevolvingText({ text = 'SVG_MKR', className = '' }: RevolvingTex
   const handleUp = () => {
     if (!isDragging) return;
     setIsDragging(false);
-    const inertia = velocity * 30;
-    let start = rotationY;
+    const inertia = velocity * 0.08;
+    const start = rotationY;
     const target = start + inertia;
     const startTime = Date.now();
-    const duration = Math.min(1200, Math.max(600, Math.abs(inertia) * 15));
+    const duration = Math.min(1200, Math.max(600, Math.abs(inertia) * 60));
     const step = () => {
       const t = Math.min(1, (Date.now() - startTime) / duration);
       setRotationY(start + (target - start) * (1 - Math.pow(1 - t, 3)));
@@ -91,44 +101,40 @@ export function RevolvingText({ text = 'SVG_MKR', className = '' }: RevolvingTex
     rafId.current = requestAnimationFrame(step);
   };
 
-  // Start auto-rotation.
-  if (!autoRotId.current) startAuto();
-
-  // Scatter letters in 3D space at varying depths and positions,
-  // similar to OKPalette's aesthetic where letters float at different
-  // distances from the viewer around the central content area.
-  const radius = 220;
-  const spread = 48; // vertical spread half-extent
-
+  // Each letter gets a unique 3D position — scattered, not a perfect ring
+  // Like OKPalette where letters float at different depths and angles
   const getLetterStyle = (index: number): React.CSSProperties => {
     const total = letters.length;
-    // Distribute each letter along a gentle arc with varying Z-depth
-    const t = index / (total - 1); // 0..1
-    const angle = t * Math.PI - Math.PI / 2; // -90° to +90° arc
-    const yOffset = Math.sin(angle) * spread;
-    // Vary the Z depth per letter so they don't all sit on one ring
-    const zDepth = radius * 0.6 + Math.cos(angle) * radius * 0.4;
-    const behind = t < 0.2 || t > 0.8; // letters near ends wrap behind
+    // Use golden ratio distribution for natural-looking scatter
+    const golden = 1.618;
+    const angle = (index * 137.5) * Math.PI / 180; // golden angle in radians
+    const distance = 180 + (index % 2) * 40; // alternate between two depths
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * 60;
+    const z = Math.sin(index * 0.7) * distance * 0.6; // varying Z for 3D depth
+    const behind = z < -20; // behind viewer plane
+
     return {
       position: 'absolute' as const,
       left: '50%',
       top: '50%',
-      transform: `rotateY(${t * 360}deg) translateZ(${zDepth}px) translate(${yOffset > 0 ? yOffset : -yOffset}px)`,
-      filter: behind ? 'contrast(1.5) brightness(0.3)' : 'none',
+      transform: `translate(-50%, -50%) translate3d(${x}px, ${y}px, ${z}px)`,
+      filter: behind ? 'contrast(1.8) brightness(0.25)' : 'none',
       opacity: behind ? 0.25 : 1,
       fontFamily: '"Times New Roman", Times, Georgia, serif',
       fontSize: '72px',
       fontWeight: 700,
       color: '#fff',
-      textShadow: behind ? '0 0 4px #fff' : 'none',
+      textShadow: behind ? '0 0 6px #fff' : '0 0 2px rgba(255,255,255,0.8)',
       pointerEvents: 'none' as const,
+      whiteSpace: 'nowrap' as const,
     };
   };
 
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-[360px] perspective-[1200px] mx-auto ${className}`}
+      className={`relative w-full h-[360px] perspective-[1400px] mx-auto ${className}`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMove}
       onMouseUp={handleUp}
@@ -144,41 +150,14 @@ export function RevolvingText({ text = 'SVG_MKR', className = '' }: RevolvingTex
           transform: `rotateY(${rotationY}rad) rotateX(${tilt}deg)`,
         }}
       >
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative w-[360px] h-[360px] flex items-center justify-center">
-            {letters.map((ch, i) => (
-              <span key={i} style={getLetterStyle(i)}>
-                {ch === ' ' ? '\u00A0' : ch}
-              </span>
-            ))}
-            {/* Frame/box matching OKPalette aesthetic: thin white border with dotted inner */}
-            <div
-              className="absolute inset-0"
-              style={{
-                borderColor: '#fff',
-                borderWidth: 1,
-                borderStyle: 'solid',
-                borderRadius: 0,
-                opacity: 0.2,
-              }}
-            />
-            <div
-              className="absolute inset-0"
-              style={{
-                borderColor: '#fff',
-                borderWidth: 1,
-                borderStyle: 'dotted',
-                borderRadius: 0,
-                opacity: 0.1,
-                margin: 3,
-                pointerEvents: 'none' as const,
-              }}
-            />
-          </div>
-        </div>
-      </div>
-      <div className="absolute bottom-4 left-0 right-0 text-center text-[10px] uppercase tracking-widest opacity-50">
-        Image to SVG Converter
+        {letters.map((ch, i) => (
+          <span key={i} style={getLetterStyle(i)}>
+            {ch === ' ' ? '\u00A0' : ch}
+          </span>
+        ))}
+        {/* Central frame: thin white border with dotted inner (OKPalette style) */}
+        <div className="absolute top-1/2 left-1/2 w-[280px] h-[280px] -translate-x-1/2 -translate-y-1/2 border border-white opacity-15" />
+        <div className="absolute top-1/2 left-1/2 w-[268px] h-[268px] -translate-x-1/2 -translate-y-1/2 border border-white border-dashed opacity-8" style={{ margin: 6 }} />
       </div>
     </div>
   );

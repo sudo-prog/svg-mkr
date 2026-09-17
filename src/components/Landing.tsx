@@ -50,13 +50,13 @@ export function Landing({ onImageSelected }: LandingProps) {
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
     >
-      {/* Top-right round Copy Code button */}
+      {/* Top-right round Copy Code button — visible against dark bg with white border */}
       <button
         onClick={handleCopyCode}
-        className="fixed top-4 right-4 z-50 w-12 h-12 rounded-full bg-charcoal border border-white text-white hover:bg-white hover:text-charcoal transition-colors flex items-center justify-center text-[9px] uppercase tracking-widest"
+        className="fixed top-4 right-4 z-50 w-12 h-12 rounded-full border border-white text-white hover:bg-white hover:text-charcoal transition-colors flex items-center justify-center text-[8px] font-mono uppercase tracking-widest leading-tight overflow-hidden"
         title="Copy the pure core module source"
       >
-        {copied ? 'COPIED!' : 'Copy Code'}
+        {copied ? '✓' : 'CODE'}
       </button>
 
       {/* Central revolving serif text */}
