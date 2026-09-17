@@ -48,7 +48,7 @@ export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-charcoal/80 backdrop-blur pointer-events-none">
+    <div className="z-10 flex flex-col items-center gap-3">
       <div
         className={`relative flex flex-col items-center gap-3 ${
           isLoading ? 'opacity-50 pointer-events-none' : ''
@@ -63,10 +63,7 @@ export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
           <div className="text-center">
             <Upload className="mx-auto mb-2 text-charcoal" size={20} />
             <span className="block text-[11px] font-mono font-bold text-charcoal uppercase tracking-wider">
-              Click to Upload Image / Drop Here
-            </span>
-            <span className="block text-[10px] font-mono text-charcoal opacity-60 mt-1">
-              or press ⌘V
+              Click to Upload Image / Drop Here / ⌘V
             </span>
           </div>
         </div>
