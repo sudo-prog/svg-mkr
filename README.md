@@ -6,6 +6,8 @@ Built with React 19 + Vite 6 + TypeScript 5.8 + Tailwind CSS v4 + ImageTracer.js
 **Visual language:** sparse black/white monospace aesthetic, inspired by
 [okpalette.color.pizza](https://okpalette.color.pizza).
 
+**Live demo:** [https://sudo-prog.github.io/svg-mkr/](https://sudo-prog.github.io/svg-mkr/)
+
 ## Features
 
 - **Landing**: Full-viewport 3D revolving "SVG_MKR" text (auto-spin + swipe + ±20° tilt + half-tone occlusion)
