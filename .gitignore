@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+*.local
+
+# Build output
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.swp
+.DS_Store

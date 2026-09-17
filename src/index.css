@@ -2,7 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --mkr-black: #000;
+  --mkr-white: #fff;
+  --mkr-gray: #666;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  background: var(--mkr-white);
+  color: var(--mkr-black);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #000 #f0f0f0;
+}
+
+button {
+  font-family: inherit;
+}
+
+#__pwa_install__ {
+  display: none;
 }
