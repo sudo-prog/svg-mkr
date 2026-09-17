@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "allowJs": true,
+    "noEmit": true,
+    "strict": false,
+    "types": ["vite/client"]
+  },
+  "include": ["vite.config.ts"]
+}
