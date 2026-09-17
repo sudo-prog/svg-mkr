@@ -15,7 +15,8 @@
 body {
   margin: 0;
   font-family: 'Iosevka Web', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  background: var(--mkr-charcoal);
+  background: var(--mkr-charcoal) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23292f2f'/%3E%3Cpath d='M0 0L64 64M64 0L0 64' stroke='%23ffffff' stroke-opacity='0.03' stroke-width='1'/%3E%3C/svg%3E");
+  background-size: 64px 64px;
   color: var(--mkr-white);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
