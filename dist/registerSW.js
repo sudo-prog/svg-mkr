@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/svg-mkr/sw.js', { scope: '/svg-mkr/' })})}
