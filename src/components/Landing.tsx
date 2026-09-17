@@ -1,55 +1,61 @@
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { RevolvingText } from './RevolvingText';
 import { UploadZone } from './UploadZone';
-import { Toast } from './Toast';
-
-// Raw source of the core module — imported at build time via Vite's ?raw suffix.
-// This is what the "Copy Code" button copies to the clipboard.
 import coreSource from '../core/imageToSvgCore.ts?raw';
-const CORE_MODULE_SOURCE = coreSource;
 
-interface Props {
-  onImage: (file: File) => void;
+interface LandingProps {
+  onImageSelected: (src: string) => void;
 }
 
 /**
- * Full-viewport landing page matching OKPalette's dark charcoal monochrome
- * aesthetic. Central 3D serif revolving text + white upload box.
- * Top-right: round "Copy Code" button that copies the pure core module.
+ * Full-viewport landing page matching OKPalette's dark charcoal monochrome aesthetic.
+ * Central 3D serif revolving text + white upload box.
+ * Top-right: round "Copy Code" button copies the core module source.
  */
-export function Landing({ onImage }: Props) {
-  const [showToast, setShowToast] = useState(false);
+export function Landing({ onImageSelected }: LandingProps) {
+  const [copied, setCopied] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
-  const copyCore = async () => {
+  const handleCopyCode = async () => {
     try {
-      await navigator.clipboard.writeText(CORE_MODULE_SOURCE);
+      await navigator.clipboard.writeText(coreSource);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
     } catch {
-      // Clipboard may fail in some environments — still show toast
+      setCopied(false);
     }
-    setShowToast(true);
   };
 
-  // Full-page paste support (⌘V / Ctrl+V)
-  const handlePaste = (e: React.ClipboardEvent) => {
-    const item = e.clipboardData?.items?.[0];
-    if (item && item.type.startsWith('image/')) {
-      const file = item.getAsFile();
-      if (file) onImage(file);
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (ev) => onImageSelected(ev.target?.result as string);
+      reader.readAsDataURL(file);
     }
   };
 
   return (
     <div
-      className="fixed inset-0 bg-[#292f2f] text-white flex flex-col items-center justify-center overflow-hidden font-mono"
-      onPaste={handlePaste}
+      className="fixed inset-0 bg-charcoal text-white flex flex-col items-center justify-center overflow-hidden"
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={handleDrop}
     >
-      {/* Top-right round Copy Code button */}
+      {/* Top-right round Copy Code button — visible against dark bg with white border */}
       <button
-        onClick={copyCore}
-        className="fixed top-4 right-4 z-50 w-12 h-12 rounded-full border border-white text-white hover:bg-white hover:text-[#292f2f] transition-colors flex items-center justify-center text-[8px] font-mono uppercase tracking-widest leading-tight overflow-hidden"
+        onClick={handleCopyCode}
+        className="fixed top-4 right-4 z-50 w-12 h-12 rounded-full border border-white text-white hover:bg-white hover:text-charcoal transition-colors flex items-center justify-center text-[8px] font-mono uppercase tracking-widest leading-tight overflow-hidden"
         title="Copy the pure core module source"
       >
-        CODE
+        {copied ? '✓' : 'CODE'}
       </button>
 
       {/* Central revolving serif text */}
@@ -57,13 +63,22 @@ export function Landing({ onImage }: Props) {
         <RevolvingText text="SVG_MKR" />
       </div>
 
-      {/* Upload zone */}
+      {/* Upload zone — large white rectangular box with black monospace */}
       <div className="mb-12">
-        <UploadZone onFile={onImage} />
+        <UploadZone onFileSelect={onImageSelected} />
       </div>
 
-      {/* Toast */}
-      {showToast && <Toast message="Core code copied!" onDone={() => setShowToast(false)} />}
+      {/* Subtle footer */}
+      <div className="fixed bottom-0 left-0 right-0 h-10 border-t border-white flex items-center justify-center px-4 text-[10px] font-mono uppercase tracking-wider opacity-40 bg-charcoal z-50">
+        Image to SVG Converter &middot; PWA
+      </div>
+
+      {/* Drag-over hint */}
+      {dragOver && (
+        <div className="fixed inset-0 bg-white/10 border-2 border-dashed border-white flex items-center justify-center text-[13px] font-mono text-white z-50 pointer-events-none">
+          DROP TO CONVERT
+        </div>
+      )}
     </div>
   );
 }

@@ -1,14 +1,20 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Landing } from './components/Landing';
 import { Editor } from './components/Editor';
 import './index.css';
 
+/**
+ * SVG_MKR v2 — App root.
+ * Landing (3D revolving text + upload) → Editor (live canvas + effects).
+ */
 export default function App() {
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
 
-  return imageFile ? (
-    <Editor file={imageFile} onBack={() => setImageFile(null)} />
+  const handleBack = () => setImageSrc(null);
+
+  return imageSrc ? (
+    <Editor imageSrc={imageSrc} onBack={handleBack} />
   ) : (
-    <Landing onImage={setImageFile} />
+    <Landing onImageSelected={setImageSrc} />
   );
 }
