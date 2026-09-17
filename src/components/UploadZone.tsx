@@ -1,107 +1,124 @@
-import React, { useCallback } from 'react';
+import { useRef, useState } from 'react';
 import { Upload, Camera } from 'lucide-react';
 
-interface UploadZoneProps {
-  onFileSelect: (source: string) => void;
-  onDrop?: (e: React.DragEvent) => void;
-  isLoading?: boolean;
+interface Props {
+  onFile: (file: File) => void;
 }
-
-const ACCEPT_ATTR = 'image/*;capture=camera';
 
 /**
  * Centered upload control matching OKPalette's aesthetic:
  * - Large white rectangular upload area
- * - Black monospace text (#0a0f0f)
- * - Handles file picker (Files / Camera) and full-page drag-and-drop.
+ * - Black monospace text
+ * - Files / Camera pickers via a pop-over menu
+ * - Full-page drag-and-drop handled by Landing
  */
-export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
-  const fileInputRef = useCallback((el: HTMLInputElement | null) => {
-    // no-op; ref attached below
-  }, []);
+export function UploadZone({ onFile }: Props) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = ev => onFileSelect(ev.target?.result as string);
-      reader.readAsDataURL(file);
+  const handleFiles = (files: FileList | null) => {
+    if (!files?.length) return;
+    const file = files[0];
+    if (file.type.startsWith('image/')) {
+      onFile(file);
+      setShowMenu(false);
     }
-    e.target.value = '';
-  };
-
-  const openPicker = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = handleFileChange as any;
-    input.click();
-  };
-
-  const openCamera = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*;capture=environment';
-    input.capture = 'environment';
-    input.onchange = handleFileChange as any;
-    input.click();
   };
 
   return (
-    <div className="z-10 flex flex-col items-center gap-3">
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={(e) => handleFiles(e.target.files)}
+        className="hidden"
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*;capture=environment"
+        onChange={(e) => handleFiles(e.target.files)}
+        className="hidden"
+      />
+
       <div
-        className={`relative flex flex-col items-center gap-3 ${
-          isLoading ? 'opacity-50 pointer-events-none' : ''
-        }`}
+        className={`
+          relative border-2 border-black rounded-sm py-16 px-8
+          flex flex-col items-center justify-center gap-4 cursor-pointer
+          transition-all duration-200
+          ${
+            isDragging
+              ? 'bg-black text-white scale-[1.02]'
+              : 'bg-white hover:bg-[#fafafa]'
+          }
+        `}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+          handleFiles(e.dataTransfer.files);
+        }}
+        onClick={() => setShowMenu(true)}
       >
-        {/* Large white rectangular upload box with charcoal monospace text */}
-        <div
-          onClick={openPicker}
-          className="w-80 h-48 bg-white border border-white flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors"
-          style={{ borderWidth: 1 }}
-        >
-          <div className="text-center">
-            <Upload className="mx-auto mb-2 text-charcoal" size={20} />
-            <span className="block text-[11px] font-mono font-bold text-charcoal uppercase tracking-wider">
-              Click to Upload Image / Drop Here / ⌘V
-            </span>
+        <Upload className="w-6 h-6 text-[#0a0f0f]" />
+        <span className="text-[#0a0f05] font-mono text-[13px] font-bold uppercase tracking-wider">
+          Upload Image
+        </span>
+        <span className="text-[#0a0f05] font-mono text-[10px] opacity-50">
+          or drag &amp; drop • ⌘V
+        </span>
+      </div>
+
+      {showMenu && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white border-2 border-black rounded-sm overflow-hidden min-w-[220px]">
+            <div className="px-4 py-3 border-b border-black font-mono text-[11px] uppercase tracking-widest text-[#0a0f05]">
+              SELECT SOURCE
+            </div>
+            <button
+              onClick={() => {
+                fileInputRef.current?.click();
+                setShowMenu(false);
+              }}
+              className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-black hover:text-white transition-colors border-b border-black/10"
+            >
+              <Upload size={18} />
+              <div className="flex flex-col">
+                <span className="font-mono text-[11px] font-bold uppercase tracking-wide">
+                  From Files
+                </span>
+                <span className="font-mono text-[9px] opacity-60">
+                  Browse your device
+                </span>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                cameraInputRef.current?.click();
+                setShowMenu(false);
+              }}
+              className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-black hover:text-white transition-colors"
+            >
+              <Camera size={18} />
+              <div className="flex flex-col">
+                <span className="font-mono text-[11px] font-bold uppercase tracking-wide">
+                  From Camera
+                </span>
+                <span className="font-mono text-[9px] opacity-60">
+                  Take a new photo
+                </span>
+              </div>
+            </button>
           </div>
         </div>
-
-        {/* From Files button */}
-        <button
-          onClick={openPicker}
-          disabled={isLoading}
-          className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-white text-[13px] font-mono font-bold text-white hover:bg-white hover:text-charcoal transition-colors disabled:opacity-50"
-        >
-          <Upload size={16} />
-          From Files
-        </button>
-
-        {/* From Camera Roll button */}
-        <button
-          onClick={openCamera}
-          disabled={isLoading}
-          className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-white text-[13px] font-mono font-bold text-white hover:bg-white hover:text-charcoal transition-colors disabled:opacity-50"
-        >
-          <Camera size={16} />
-          From Camera Roll
-        </button>
-        <label
-          htmlFor="dropzone-file"
-          className="mt-2 text-[10px] font-mono text-white uppercase tracking-wider cursor-pointer"
-        >
-          or drop an image anywhere
-        </label>
-        <input
-          id="dropzone-file"
-          ref={fileInputRef}
-          type="file"
-          accept={ACCEPT_ATTR}
-          onChange={handleFileChange}
-          className="hidden"
-        />
-      </div>
-    </div>
+      )}
+    </>
   );
 }

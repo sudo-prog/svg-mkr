@@ -1,84 +1,159 @@
-import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import { useState } from 'react';
+import { Eraser, Circle, Square, Waves } from 'lucide-react';
 
-interface ColorBox {
+export interface PaletteColor {
   r: number;
   g: number;
   b: number;
+  hex: string;
 }
 
-interface ColorPaletteProps {
-  palette: ColorBox[];
-  deletedColors: number[];
-  onToggleDelete: (index: number) => void;
+type LayerEffect = 'halftone' | 'distressed' | 'outline' | null;
+
+interface Props {
+  colors: PaletteColor[];
+  selectedIndex: number | null;
+  deletedIndices: number[];
   onSelect: (index: number) => void;
-  selected: number | null;
+  onRecolor: (index: number, hex: string) => void;
+  onDelete: (index: number) => void;
+  onEffect: (index: number, effect: LayerEffect) => void;
+  activeEffect: Record<number, LayerEffect>;
 }
 
 /**
- * Interactive color boxes: single-click selects, double-click
- * opens native color picker. Deleted colors show an X badge.
+ * Interactive color boxes (12×12) with select / recolor / delete / effects.
+ * - Click → select
+ * - Double-click → native color picker (recolor)
+ * - Deleted colors → transparent with an X badge
+ * - LAYER panel → per-layer halftone / distressed / outline / delete
  */
 export function ColorPalette({
-  palette,
-  deletedColors,
-  onToggleDelete,
+  colors,
+  selectedIndex,
+  deletedIndices,
   onSelect,
-  selected,
-}: ColorPaletteProps) {
-  const [nativePickerIdx, setNativePickerIdx] = useState<number | null>(null);
-
-  const handleDoubleClick = (idx: number, color: ColorBox) => {
-    setNativePickerIdx(idx);
-    const input = document.createElement('input');
-    input.type = 'color';
-    input.value = `#${color.r.toString(16).padStart(2, '0')}${color.g.toString(16).padStart(2, '0')}${color.b.toString(16).padStart(2, '0')}`;
-    input.oninput = () => {
-      const v = input.value;
-      const r = parseInt(v.slice(1, 3), 16);
-      const g = parseInt(v.slice(3, 5), 16);
-      const b = parseInt(v.slice(5, 7), 16);
-      onColorChange(idx, { r, g, b });
-    };
-    input.click();
-  };
-
-  const onColorChange = (idx: number, color: ColorBox) => {
-    // Caller provides paletteOverrides via parent; here we just emit.
-    // The actual override update lives in the parent hook.
-    (window as any).__svg_mkr_override = (window as any).__svg_mkr_override || {};
-    (window as any).__svg_mkr_override[idx] = color;
-    // Notify via custom event so parent can react.
-    window.dispatchEvent(new CustomEvent('palette-color-change', { detail: { idx, color } }));
-    setNativePickerIdx(null);
-  };
-
-  if (!palette || palette.length === 0) return null;
+  onRecolor,
+  onDelete,
+  onEffect,
+  activeEffect,
+}: Props) {
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {palette.map((p, i) => {
-        const isDeleted = deletedColors.includes(i);
-        const hex = `#${p.r.toString(16).padStart(2, '0')}${p.g.toString(16).padStart(2, '0')}${p.b.toString(16).padStart(2, '0')}`;
-        return (
-          <div
-            key={i}
-            onClick={() => onSelect(i)}
-            onDoubleClick={() => handleDoubleClick(i, p)}
-            className={`relative w-8 h-8 border cursor-pointer transition-all ${
-              isDeleted ? 'opacity-25' : ''
-            } ${selected === i ? 'ring-2 ring-black' : 'hover:brightness-110'}`}
-            style={{ backgroundColor: hex }}
-            title={`Color ${i + 1}: ${hex}`}
+    <div className="space-y-3">
+      {/* Color boxes */}
+      <div className="flex flex-wrap gap-2">
+        {colors.map((color, i) => {
+          const isDeleted = deletedIndices.includes(i);
+          const isSelected = selectedIndex === i;
+
+          return (
+            <div key={i} className="relative">
+              <div
+                onClick={() => onSelect(i)}
+                onDoubleClick={() => setEditingIndex(i)}
+                className={`
+                  w-12 h-12 border-2 transition-all cursor-pointer
+                  ${isSelected ? 'border-black scale-110 shadow-md' : 'border-black/30'}
+                  ${isDeleted ? 'opacity-30' : ''}
+                `}
+                style={{ backgroundColor: isDeleted ? 'transparent' : color.hex }}
+                title={`Color ${i + 1} – double-click to recolor`}
+              />
+
+              {isDeleted && (
+                <div className="absolute inset-0 flex items-center justify-center text-[#0a0f05]">
+                  <Eraser size={14} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Layer effects panel — only when a non-deleted color is selected */}
+      {selectedIndex !== null && !deletedIndices.includes(selectedIndex) && (
+        <div className="flex items-center gap-1 border-t border-black pt-2">
+          <span className="text-[9px] font-mono uppercase tracking-widest text-[#0a0f05]/60 mr-2">
+            LAYER
+          </span>
+
+          <button
+            onClick={() =>
+              onEffect(
+                selectedIndex,
+                activeEffect[selectedIndex] === 'halftone' ? null : 'halftone',
+              )
+            }
+            className={`p-2 border border-black ${
+              activeEffect[selectedIndex] === 'halftone'
+                ? 'bg-black text-white'
+                : 'hover:bg-black hover:text-white'
+            } transition-colors`}
+            title="Halftone"
           >
-            {isDeleted && (
-              <div className="absolute inset-0 flex items-center justify-center text-red-600">
-                <X size={12} />
-              </div>
-            )}
-          </div>
-        );
-      })}
+            <Waves size={14} />
+          </button>
+
+          <button
+            onClick={() =>
+              onEffect(
+                selectedIndex,
+                activeEffect[selectedIndex] === 'distressed' ? null : 'distressed',
+              )
+            }
+            className={`p-2 border border-black ${
+              activeEffect[selectedIndex] === 'distressed'
+                ? 'bg-black text-white'
+                : 'hover:bg-black hover:text-white'
+            } transition-colors`}
+            title="Distressed"
+          >
+            <Square size={14} />
+          </button>
+
+          <button
+            onClick={() =>
+              onEffect(
+                selectedIndex,
+                activeEffect[selectedIndex] === 'outline' ? null : 'outline',
+              )
+            }
+            className={`p-2 border border-black ${
+              activeEffect[selectedIndex] === 'outline'
+                ? 'bg-black text-white'
+                : 'hover:bg-black hover:text-white'
+            } transition-colors`}
+            title="Outline"
+          >
+            <Circle size={14} />
+          </button>
+
+          <button
+            onClick={() => onDelete(selectedIndex)}
+            className="p-2 border border-black hover:bg-black hover:text-white ml-auto transition-colors"
+            title="Delete layer (Esc)"
+          >
+            <Eraser size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* Hidden native color picker — appears on double-click */}
+      {editingIndex !== null && (
+        <input
+          type="color"
+          value={colors[editingIndex]?.hex || '#000000'}
+          onChange={(e) => {
+            onRecolor(editingIndex, e.target.value);
+            setEditingIndex(null);
+          }}
+          onBlur={() => setEditingIndex(null)}
+          className="absolute opacity-0 w-0 h-0"
+          autoFocus
+        />
+      )}
     </div>
   );
 }

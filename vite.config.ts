@@ -22,19 +22,19 @@ export default defineConfig({
         theme_color: '#000000',
         icons: [
           {
-            src: '/svg-mkr/icons/pwa-192.png',
+            src: '/svg-mkr/icons/icon-192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: '/svg-mkr/icons/pwa-512.png',
+            src: '/svg-mkr/icons/icon-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: '/svg-mkr/icons/pwa-maskable.png',
+            src: '/svg-mkr/icons/icon-maskable-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
