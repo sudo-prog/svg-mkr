@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>SVG_MKR — Image to SVG Converter</title>
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://sudo-prog.github.io/svg-mkr/" />
+    <meta property="og:title" content="SVG_MKR — Image to SVG Converter" />
+    <meta
+      property="og:description"
+      content="SVG_MKR converts raster images to clean SVGs with color separation, halftone, and background removal."
+    />
+    <meta property="og:image" content="https://sudo-prog.github.io/svg-mkr/social.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://sudo-prog.github.io/svg-mkr/" />
+    <meta property="twitter:title" content="SVG_MKR — Image to SVG Converter" />
+    <meta
+      property="twitter:description"
+      content="SVG_MKR converts raster images to clean SVGs with color separation, halftone, and background removal."
+    />
+    <meta property="twitter:image" content="https://sudo-prog.github.io/svg-mkr/social.png" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+
+    <!-- Iosevka font (matches okpalette) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/Iosevka/6.0.0/iosevka/iosevka.min.css"
+    />
+    <!-- okpalette CSS (verbatim visual match) -->
+    <link rel="stylesheet" href="./style.css">
+    <!-- PWA manifest -->
+    <link rel="manifest" href="./manifest.webmanifest" />
+  </head>
+  <body>
+    <div class="l-wrap">
+      <div class="l-layout">
+        <!-- =================== MAIN CONTENT =================== -->
+        <div class="l-main">
+          <article class="l-app" aria-label="SVG_MKR Editor">
+            <!-- =================== HEADER =================== -->
+            <div class="l-app__header">
+              <div class="menu">
+                <!-- Color Count (1-10) -->
+                <div class="menu__item">
+                  <div class="button button--label button--count" id="colorCountLabel">
+                    <label for="colorCountInput">Colors</label>
+
+                    <div class="button__group">
+                      <span class="numberslider" style="--relval: 0.3">
+                        <button class="numberslider__button">−</button>
+                        <input
+                          class="numberslider__input"
+                          type="number"
+                          id="colorCountInput"
+                          min="1"
+                          max="10"
+                          value="4"
+                        />
+                        <button class="numberslider__button">+</button>
+                      </span>
+                      <label class="checkbox checkbox--button">
+                        <input type="checkbox" id="lockColorCount" />
+                        <span class="reset__icon"> </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Auto-Trace -->
+                <div class="menu__item">
+                  <label class="button button--label">
+                    <span>Auto-Trace</span>
+                    <span class="checkbox checkbox--toggle">
+                      <input type="checkbox" id="autoTrace" checked />
+                      <span class="checkbox__toggle" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                </div>
+
+                <!-- Replace Image -->
+                <div class="menu__item">
+                  <button
+                    class="button button--end button--icon button--upload"
+                    id="replaceImageBtn"
+                  >
+                    <svg
+                      class="button__icon"
+                      stroke-width="1.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M6 20L18 20"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      ></path>
+                      <path
+                        d="M12 16V4M12 4L15.5 7.5M12 4L8.5 7.5"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      ></path>
+                    </svg>
+                    <span>Replace</span>
+                  </button>
+                </div>
+
+                <!-- Color Samples (appended dynamically) -->
+                <div class="menu__item" id="colorSamplesContainer">
+                  <div class="colorSamples button--label" id="colorSamplesList">
+                    <!-- Color samples appended dynamically -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- =================== TOP DRAWER (Hue / Saturation) =================== -->
+            <div class="l-app__drawers l-app__drawers--top">
+              <div class="l-app__drawer">
+                <aside class="drawer" aria-label="Color Effects">
+                  <div class="drawer__section drawer__section--half">
+                    <div class="field field--range">
+                      <div class="field__header">
+                        <span class="field__header-start">Hue</span>
+                        <span class="field__header-center"><i id="hueValue">0</i></span>
+                        <span class="field__header-end">+180°</span>
+                      </div>
+                      <div class="range" style="--graduations: 5; --progress: 0.5; --center: 0.5">
+                        <input
+                          type="range"
+                          id="hueSlider"
+                          min="-180"
+                          max="180"
+                          value="0"
+                        />
+                        <div class="range-highlight"></div>
+                        <i class="range-marker"></i>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="drawer__section drawer__section--half">
+                    <div class="field field--range">
+                      <div class="field__header">
+                        <span class="field__header-start">Sat</span>
+                        <span class="field__header-center"><i id="saturationValue">100</i></span>
+                        <span class="field__header-end">200%</span>
+                      </div>
+                      <div class="range" style="--graduations: 5; --progress: 0.5; --center: 0.5">
+                        <input
+                          type="range"
+                          id="saturationSlider"
+                          min="0"
+                          max="200"
+                          value="100"
+                        />
+                        <div class="range-highlight"></div>
+                        <i class="range-marker"></i>
+                      </div>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </div>
+
+            <!-- =================== BOTTOM DRAWER (SVG Stats) =================== -->
+            <div class="l-app__drawers l-app__drawers--bottom">
+              <div class="l-app__drawer">
+                <aside class="drawer" aria-label="SVG Stats">
+                  <div class="drawer__section">
+                    <ul class="stats">
+                      <li class="stats__row">
+                        <span class="stats__label">Paths</span>
+                        <div class="stats__bar">
+                          <div class="stats__bar-fill" id="barPaths" style="width: 0%"></div>
+                        </div>
+                        <span class="stats__value" id="statPaths">0</span>
+                      </li>
+                      <li class="stats__row">
+                        <span class="stats__label">Colors</span>
+                        <div class="stats__bar">
+                          <div class="stats__bar-fill" id="barColors" style="width: 0%"></div>
+                        </div>
+                        <span class="stats__value" id="statColors">0</span>
+                      </li>
+                      <li class="stats__row">
+                        <span class="stats__label">Size</span>
+                        <div class="stats__bar">
+                          <div class="stats__bar-fill" id="barSize" style="width: 0%"></div>
+                        </div>
+                        <span class="stats__value" id="statSize">0 KB</span>
+                      </li>
+                    </ul>
+                    <div class="drawer__hint">
+                      ⌘/Ctrl+I for <button class="link" id="debugViewLink">debug view</button>
+                    </div>
+                  </div>
+                  <div class="drawer__section drawer__section--half">
+                    <svg
+                      id="colorSpaceSvg"
+                      viewBox="0 0 200 200"
+                      preserveAspectRatio="xMidYMid meet"
+                      style="touch-action: none"
+                    ></svg>
+                  </div>
+                </aside>
+              </div>
+            </div>
+
+            <!-- =================== BODY (Image + Upload) =================== -->
+            <div class="l-body">
+              <div class="extractor" id="imageContainer">
+                <div class="extractor__markers-bg" id="markersBg"></div>
+                <canvas class="canvas-image" id="canvas"></canvas>
+                <div class="extractor__loupe" id="loupe">
+                  <canvas id="loupeCanvas" width="160" height="160"></canvas>
+                  <div class="canvas_copy">
+                    <canvas id="loupeCanvasCopy" width="160" height="160"></canvas>
+                  </div>
+                </div>
+                <div class="extractor__markers" id="markers"></div>
+              </div>
+
+              <div class="cta-intro">
+                <div class="upload-area__intro">
+                  <p><strong>SVG_MKR</strong> converts raster images to clean SVGs with color separation, halftone, and background removal.</p>
+                </div>
+                <label class="upload-area" for="fileInput" id="uploadArea"> Upload an Image </label>
+                <span class="upload-text">
+                  <span class="upload-text__full">Click to Upload Image / Drop Here / ⌘+V</span>
+                  <span aria-hidden="true" class="upload-text__phone">Upload Image / ⌘+V</span>
+                </span>
+                <input type="file" id="fileInput" accept="image/*" hidden />
+                <p class="upload-area__after">Or try one of the sample images below:</p>
+
+                <div class="example-images" id="examples">
+                  <ul class="example-images__list">
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/01.jpg"
+                        aria-label="Load Example Image 1"
+                      >
+                        <img src="img/01.jpg" alt="Example Image 1 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/04.jpg"
+                        aria-label="Load Example Image 2"
+                      >
+                        <img src="img/04.jpg" alt="Example Image 2 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/11.jpg"
+                        aria-label="Load Example Image 3"
+                      >
+                        <img src="img/11.jpg" alt="Example Image 3 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/12.jpg"
+                        aria-label="Load Example Image 4"
+                      >
+                        <img src="img/12.jpg" alt="Example Image 4 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/fish.jpeg"
+                        aria-label="Load Example Image 5"
+                      >
+                        <img src="img/fish.jpeg" alt="Example Image 5 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/15.webp"
+                        aria-label="Load Example Image 6"
+                      >
+                        <img src="img/15.webp" alt="Example Image 6 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/18.jpg"
+                        aria-label="Load Example Image 7"
+                      >
+                        <img src="img/18.jpg" alt="Example Image 7 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/24.jpg"
+                        aria-label="Load Example Image 8"
+                      >
+                        <img src="img/24.jpg" alt="Example Image 8 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/26.jpg"
+                        aria-label="Load Example Image 9"
+                      >
+                        <img src="img/26.jpg" alt="Example Image 9 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/27.jpg"
+                        aria-label="Load Example Image 10"
+                      >
+                        <img src="img/27.jpg" alt="Example Image 10 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/29.jpg"
+                        aria-label="Load Example Image 11"
+                      >
+                        <img src="img/29.jpg" alt="Example Image 11 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/35.jpg"
+                        aria-label="Load Example Image 12"
+                      >
+                        <img src="img/35.jpg" alt="Example Image 12 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/36.jpg"
+                        aria-label="Load Example Image 13"
+                      >
+                        <img src="img/36.jpg" alt="Example Image 13 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/37.jpg"
+                        aria-label="Load Example Image 14"
+                      >
+                        <img src="img/37.jpg" alt="Example Image 14 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/herbert-arnould.jpeg"
+                        aria-label="Load Example Image 15"
+                      >
+                        <img src="img/herbert-arnould.jpeg" alt="Example Image 15 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/northern-lights.jpeg"
+                        aria-label="Load Example Image 16"
+                      >
+                        <img src="img/northern-lights.jpeg" alt="Example Image 16 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        class="example-image-btn"
+                        data-src="img/winters-night.jpeg"
+                        aria-label="Load Example Image 17"
+                      >
+                        <img src="img/winters-night.jpeg" alt="Example Image 17 Thumbnail" loading="lazy" />
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Selection Overlay (kept for structural parity with okpalette) -->
+              <svg
+                class="mask"
+                id="selectionOverlay"
+                aria-hidden="true"
+                preserveAspectRatio="none"
+                viewBox="0 0 1000 1000"
+                style="display: none; pointer-events: none"
+              >
+                <defs>
+                  <pattern
+                    id="selectionHatch"
+                    width="3"
+                    height="3"
+                    patternUnits="userSpaceOnUse"
+                    patternTransform="rotate(45)"
+                  >
+                    <line
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2=".5"
+                      stroke="var(--c-surface-on)"
+                      stroke-width="2"
+                      vector-effect="non-scaling-stroke"
+                    ></line>
+                  </pattern>
+
+                  <mask
+                    id="selectionOutsideMask"
+                    maskUnits="userSpaceOnUse"
+                    maskContentUnits="userSpaceOnUse"
+                  >
+                    <rect
+                      id="selectionMaskBg"
+                      x="0"
+                      y="0"
+                      width="1000"
+                      height="1000"
+                      fill="white"
+                    ></rect>
+                    <rect
+                      id="selectionMaskCutout"
+                      x="150"
+                      y="150"
+                      width="700"
+                      height="700"
+                      fill="black"
+                    ></rect>
+                  </mask>
+
+                  <rect
+                    id="cornerMarker"
+                    width="8"
+                    height="8"
+                    fill="var(--c-surface)"
+                    stroke="currentColor"
+                    stroke-width="1"
+                    vector-effect="non-scaling-stroke"
+                  ></rect>
+                  <rect id="cornerMarkerInner" width="5" height="6" fill="currentColor"></rect>
+                </defs>
+
+                <rect
+                  id="selectionBgRect"
+                  x="0"
+                  y="0"
+                  width="1000"
+                  height="1000"
+                  fill="var(--c-surface)"
+                  mask="url(#selectionOutsideMask)"
+                  opacity="0.2"
+                ></rect>
+                <rect
+                  id="selectionHatchRect"
+                  x="0"
+                  y="0"
+                  width="1000"
+                  height="1000"
+                  fill="url(#selectionHatch)"
+                  mask="url(#selectionOutsideMask)"
+                ></rect>
+                <rect
+                  id="selectionOutline"
+                  x="0"
+                  y="0"
+                  width="0"
+                  height="0"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1"
+                  stroke-dasharray="2 2"
+                  vector-effect="non-scaling-stroke"
+                ></rect>
+
+                <use id="cornerTopLeft" href="#cornerMarker" x="0" y="0" style="display: none"></use>
+                <use id="cornerTopRight" href="#cornerMarker" x="0" y="0" style="display: none"></use>
+                <use id="cornerBottomLeft" href="#cornerMarker" x="0" y="0" style="display: none"></use>
+                <use id="cornerBottomRight" href="#cornerMarker" x="0" y="0" style="display: none"></use>
+
+                <use id="cornerTopLeftInner" href="#cornerMarkerInner" x="0" y="0" style="display: none"></use>
+                <use id="cornerTopRightInner" href="#cornerMarkerInner" x="0" y="0" style="display: none"></use>
+                <use id="cornerBottomLeftInner" href="#cornerMarkerInner" x="0" y="0" style="display: none"></use>
+                <use id="cornerBottomRightInner" href="#cornerMarkerInner" x="0" y="0" style="display: none"></use>
+              </svg>
+            </div>
+          </article>
+
+          <!-- =================== OVERLAY MENU =================== -->
+          <div class="menu menu--overlay">
+            <div class="menu__item">
+              <h2 class="button button--title"><span id="paletteName"></span></h2>
+            </div>
+            <div class="menu__item">
+              <button class="button button--icon button--close button--end" id="closeOverlayBtn">
+                <svg
+                  class="button__icon button__icon--close"
+                  stroke-width="1.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M18 6L6 18M6 6L18 18"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  ></path>
+                </svg>
+                <span>Close</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- =================== EXPORT OVERLAY =================== -->
+          <div class="l-overlay" id="results">
+            <div class="l-overlay__body">
+              <!-- Palette rows appended here -->
+              <div class="palette" id="palette"></div>
+            </div>
+            <div class="l-overlay__footer">
+              <div class="menu menu--end menu--export">
+                <div class="menu__item">
+                  <label class="button button--label button--label-reverse">
+                    <span>Sort Layers</span>
+                    <span class="checkbox checkbox--toggle">
+                      <input type="checkbox" id="autoSort" checked />
+                      <span class="checkbox__toggle" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                </div>
+                <div class="menu__item">
+                  <button class="button button--icon" id="copyPaletteBtn" title="Copy Palette">
+                    <svg
+                      class="button__icon button__icon--copy"
+                      stroke-width="1.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M9 11c0-.55.45-1 1-1h4c.55 0 1 .45 1 1v4c0 .55-.45 1-1 1h-4c-.55 0-1-.45-1-1z"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      ></path>
+                      <path
+                        d="M16 11V7c0-.55-.45-1-1-1h-2c-.55 0-1 .45-1 1v4"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      ></path>
+                      <path
+                        d="M9 15h6"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      ></path>
+                      <path
+                        d="M9 11V7c0-.55.45-1 1-1h2c.55 0 1 .45 1 1"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      ></path>
+                    </svg>
+                  </button>
+                </div>
+                <div class="menu__item">
+                  <button
+                    class="button button--icon button--end"
+                    id="downloadPaletteBtnSVG"
+                    title="Export as SVG"
+                  >
+                    <svg
+                      class="button__icon"
+                      stroke-width="1.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M6 20L18 20"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      ></path>
+                      <path
+                        d="M12 16V4M12 4L15.5 7.5M12 4L8.5 7.5"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      ></path>
+                    </svg>
+                    <span>SVG</span>
+                  </button>
+                </div>
+                <div class="menu__item">
+                  <button
+                    class="button button--icon button--end"
+                    id="downloadPaletteBtnPNG"
+                    title="Export as PNG"
+                  >
+                    <svg
+                      class="button__icon"
+                      stroke-width="1.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M7 3H14L19 8V21H7V3Z"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      ></path>
+                      <path
+                        d="M14 3V8H19"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      ></path>
+                    </svg>
+                    <span>PNG</span>
+                  </button>
+                </div>
+                <button class="button button--title" id="closeOverlayBtn">
+                  <span class="button--label">Close</span>
+                  <svg
+                    class="button__icon"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M6 6L18 18M18 6L6 18"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- =================== STATS BUTTON =================== -->
+          <div class="stats-button">
+            <button class="button button--icon" id="toggleStatsBtn">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="button__icon"
+              >
+                <use href="#colorSpaceSvg" />
+              </svg>
+              <span>Stats</span>
+            </button>
+          </div>
+
+          <!-- =================== EXPORT BUTTON =================== -->
+          <div class="export-button">
+            <button class="button button--end button--icon" id="toggleOverlayBtn">
+              <svg
+                class="button__icon button__icon--export"
+                stroke-width="1.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6 20L18 20"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                ></path>
+                <path
+                  d="M12 16V4M12 4L15.5 7.5M12 4L8.5 7.5"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                ></path>
+              </svg>
+              <span>Export</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- =================== 3D SPINNING TEXT =================== -->
+        <div class="deco-text">
+          <h1 class="deco-text__type">
+            <i style="--i: 0/14">S</i>
+            <i style="--i: 1/14">V</i>
+            <i style="--i: 2/14">G</i>
+            <i style="--i: 3/14">_</i>
+            <i style="--i: 4/14">M</i>
+            <i style="--i: 5/14">K</i>
+            <i style="--i: 6/14">R</i>
+
+            <i style="--i: 7/14" aria-hidden="hidden">S</i>
+            <i style="--i: 8/14" aria-hidden="hidden">V</i>
+            <i style="--i: 9/14" aria-hidden="hidden">G</i>
+            <i style="--i: 10/14" aria-hidden="hidden">_</i>
+            <i style="--i: 11/14" aria-hidden="hidden">M</i>
+            <i style="--i: 12/14" aria-hidden="hidden">K</i>
+            <i style="--i: 13/14" aria-hidden="hidden">R</i>
+          </h1>
+        </div>
+
+        <!-- =================== FOOTER =================== -->
+        <footer class="l-footer">
+          <a
+            href="https://github.com/sudo-prog/svg-mkr"
+            class="ellogo"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 30" width="200" height="30">
+              <text
+                x="0"
+                y="20"
+                font-family="'Iosevka Web',monospace"
+                font-weight="300"
+                font-size="20"
+                fill="currentColor"
+                >SVG_MKR</text
+              >
+            </svg>
+          </a>
+          <div class="about">
+            <p class="subtitle">
+              no cookies • no tracking •
+              <span title="everything happens in your browser">no uploads</span> © 2026
+            </p>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- =================== LOADING =================== -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div>Converting to SVG…</div>
+    </div>
+
+    <!-- =================== TEMPLATES =================== -->
+    <template id="colorRowTemplate">
+      <div class="palette__row">
+        <div class="palette__swatch" data-bg></div>
+        <div class="palette__row-info">
+          <div class="palette__row-info-header">
+            <div class="palette__row-name" data-name>...</div>
+            <span class="palette__row-info-deco"></span>
+            <div class="palette__row-hex" data-hex></div>
+          </div>
+          <div class="palette__meta">
+            <span class="palette__color-percent" data-percent></span>
+            <span class="palette__color-oklab" data-oklab></span>
+          </div>
+          <div class="layer-effects">
+            <button class="layer-effect-btn" data-effect="outline" title="Outline">O</button>
+            <button class="layer-effect-btn" data-effect="halftone" title="Halftone">H</button>
+            <button class="layer-effect-btn" data-effect="distress" title="Distress">D</button>
+          </div>
+        </div>
+        <div class="copy-feedback">Copied!</div>
+      </div>
+    </template>
+
+    <template id="colorSampleTemplate">
+      <div class="color-sample">
+        <div class="color-sample__swatch"></div>
+        <div class="color-sample__info">
+          <div class="color-sample__hex" data-hex></div>
+          <div class="color-sample__oklab" data-oklab></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- =================== AUDIO =================== -->
+    <audio preload="auto" id="sfx-success">
+      <source src="./sfx/Casual_6_7.m4a" type="audio/mp4" />
+    </audio>
+    <audio preload="auto" id="sfx-toggle">
+      <source src="./sfx/ClickAndSlide.m4a" type="audio/mp4" />
+    </audio>
+    <audio preload="auto" id="sfx-tick">
+      <source src="./sfx/HandleDragTick.m4a" type="audio/mp4" />
+    </audio>
+    <audio preload="auto" id="sfx-error">
+      <source src="./sfx/ClickyButton4.m4a" type="audio/mp4" />
+    </audio>
+
+    <!-- =================== SCRIPTS =================== -->
+    <script src="./imagetracer.min.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
