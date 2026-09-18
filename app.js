@@ -48,6 +48,10 @@ class SoundManager {
       el.play().catch(() => {});
     }
   }
+  playSuccess() { this.play('success'); }
+  playError() { this.play('error'); }
+  playToggle() { this.play('toggle'); }
+  playTick() { this.play('tick'); }
 }
 const J = new SoundManager();
 
