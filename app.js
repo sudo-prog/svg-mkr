@@ -530,6 +530,7 @@ function processImageData(img) {
     deletedLayers: [],
   });
 
+  try {
   document.body.classList.add('has-image');
   window.__step = 'after_hasimage';
   J.playSuccess();
@@ -547,6 +548,11 @@ function processImageData(img) {
     window.__step = 'calling_traceToSVG';
     traceToSVG();
     window.__step = 'traceToSVG_returned';
+  }
+  } catch (e) {
+  window.__processError = e.message;
+  window.__processStack = e.stack;
+  console.error('[SVG_MKR] processImageData error:', e);
   }
 }
 
