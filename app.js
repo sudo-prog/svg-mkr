@@ -585,9 +585,9 @@ function getProcessedDataUrl() {
 
 // === SVG TRACING ===
 function traceToSVG() {
-  console.log('[SVG_MKR] traceToSVG called, hasImage:', S.hasImage, 'currentImageData:', S.currentImageData ? 'set' : 'null', 'colorCount:', S.colorCount);
+  window.__traceResult = { step: 'start', hasImage: S.hasImage, hasIData: !!S.currentImageData };
   if (!S.hasImage || !S.currentImageData) {
-    console.log('[SVG_MKR] traceToSVG: early return — missing state');
+    window.__traceResult.step = 'early_return';
     return;
   }
 
@@ -598,7 +598,7 @@ function traceToSVG() {
   }
 
   const dataUrl = getProcessedDataUrl();
-  console.log('[SVG_MKR] dataUrl:', dataUrl ? dataUrl.substring(0, 40) + '...' : 'null');
+  window.__traceResult.dataUrl = dataUrl ? dataUrl.substring(0, 40) + '...' : 'null';
   if (!dataUrl) {
     setState({ isExtracting: false });
     if (B.loading) { B.loading.style.display = 'none'; B.loading.classList.remove('visible'); }
@@ -625,11 +625,15 @@ function traceToSVG() {
   try {
     ImageTracer.imageToSVG(dataUrl, (svgString) => {
       console.log('[SVG_MKR] ImageTracer callback fired, svg length:', svgString ? svgString.length : 'null');
+    window.__traceResult.step = 'callback';
+    window.__traceResult.svgLength = svgString ? svgString.length : 0;
       clearTimeout(timeout);
       parseSVG(svgString);
     }, options);
   } catch (e) {
     console.error('[SVG_MKR] ImageTracer error:', e.message);
+    window.__traceResult.step = 'error';
+    window.__traceResult.error = e.message;
     clearTimeout(timeout);
     setState({ isExtracting: false });
     if (B.loading) { B.loading.style.display = 'none'; B.loading.classList.remove('visible'); }
