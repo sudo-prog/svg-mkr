@@ -531,16 +531,22 @@ function processImageData(img) {
   });
 
   document.body.classList.add('has-image');
+  window.__step = 'after_hasimage';
   J.playSuccess();
+  window.__step = 'after_play_success';
 
   // Render color space and samples immediately
   renderColorSpace([]);
+  window.__step = 'after_render_colorspace';
   renderColorSamples([]);
+  window.__step = 'after_render_samples';
 
   // Trace if auto-trace is on
   console.log('[SVG_MKR] processImageData done: autoTrace=', S.autoTrace, 'hasImage=', S.hasImage);
   if (S.autoTrace) {
+    window.__step = 'calling_traceToSVG';
     traceToSVG();
+    window.__step = 'traceToSVG_returned';
   }
 }
 
