@@ -2,8 +2,7 @@
 
 /* SVG_MKR additions: spinner, layer effects, loading state, drag overlay */
 .spinner{width:2rem;height:2rem;border:2px solid var(--c-surface-on);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
-.loading.visible{display:flex;opacity:1;pointer-events:auto}
-.layer-effects{display:flex;gap:.25rem;margin-top:.25rem;flex-wrap:wrap}
+.loading.visible{display:flex;opacity:1;pointer-events:auto}.deco-text__type{display:block!important}.layer-effects{display:flex;gap:.25rem;margin-top:.25rem;flex-wrap:wrap}
 .layer-effect-btn{flex:0 0 1.4rem;height:1.4rem;border:var(--s-line) solid var(--c-surface-on);background:var(--c-surface);border-radius:.25rem;font-size:.4rem;font-weight:900;cursor:pointer;opacity:.35;transition:opacity .1s linear,background .05s linear,color .05s linear}
 .layer-effect-btn.active,.layer-effect-btn:hover{opacity:1;background:var(--c-surface-on);color:var(--c-surface)}
 body.drag-over .cta-intro{border-color:var(--c-surface-on);box-shadow:0 0 0 var(--s-line--fat) var(--c-surface-on)}

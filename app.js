@@ -57,7 +57,7 @@ function hexToRgb(hex) {
   return [
     parseInt(h.substr(0, 2), 16),
     parseInt(h.substr(2, 2), 16),
-    parseInt(h.substr(4, 2), 15),
+    parseInt(h.substr(4, 2), 16),
   ];
 }
 function rgbToHsv(r, g, b) {
@@ -203,14 +203,21 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   // === Intro animation ===
-  setTimeout(() => document.body.classList.add('intro-done'), 650);
+  setTimeout(() => {
+    document.body.classList.add('intro-done');
+    // okpalette controls cta-intro visibility via JS inline styles (no .intro-done .cta-intro CSS rule)
+    if (B.ctaIntro) {
+      B.ctaIntro.style.opacity = '1';
+      B.ctaIntro.style.pointerEvents = 'auto';
+    }
+  }, 650);
   setTimeout(() => document.body.classList.add('intro-anim-done'), 1850);
 
   // === Number slider (color count) ===
   initNumberSlider();
 
   // === Range sliders (hue / saturation) ===
-  initRangeSliders(F);
+  initRangeSliders();
 
   // === Image upload ===
   initImageUpload();
@@ -349,7 +356,7 @@ function initNumberSlider() {
 }
 
 // === RANGE SLIDERS ===
-function initRangeSliders(faviconManager) {
+function initRangeSliders() {
   const sliders = [
     { input: B.hueSlider, value: B.hueValue, key: 'hue' },
     { input: B.saturationSlider, value: B.saturationValue, key: 'saturation' },
@@ -494,8 +501,9 @@ function processImageData(img) {
   ctx.clearRect(0, 0, w, h);
   ctx.drawImage(img, 0, 0, w, h);
 
-  // Store base data URL (for re-tracing)
+  // Store base data URL (for re-tracing) and mark image as loaded
   setState({
+    hasImage: true,
     baseDataUrl: canvas.toDataURL('image/png'),
     imageWidth: w,
     imageHeight: h,
@@ -651,7 +659,11 @@ function parseSVG(svgString) {
   renderColorSpace(sorted);
   updateStats(stats);
 
-  // Show editor (first time only — idempotent)
+  // Hide cta-intro after extraction (clear inline styles we set during intro, so .has-extracted CSS can take effect)
+  if (B.ctaIntro) {
+    B.ctaIntro.style.opacity = '';
+    B.ctaIntro.style.pointerEvents = '';
+  }
   document.body.classList.add('has-extracted');
   setTimeout(() => document.body.classList.add('intro-done'), 650);
   setTimeout(() => document.body.classList.add('intro-anim-done'), 1850);
