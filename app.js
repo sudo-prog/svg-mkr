@@ -487,19 +487,33 @@ function initPaste() {
 
 // === LOAD AND PROCESS IMAGE ===
 function loadAndProcessImage(file) {
-  console.log('[SVG_MKR] loadAndProcessImage called, file:', file?.name, file?.size);
   const url = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {
-    console.log('[SVG_MKR] Image loaded, natural size:', img.naturalWidth + 'x' + img.naturalHeight);
     URL.revokeObjectURL(url);
     processImageData(img);
   };
   img.onerror = () => {
-    console.error('[SVG_MKR] Image failed to load');
     URL.revokeObjectURL(url);
+    J.playError();
   };
   img.src = url;
+}
+
+// === EXAMPLE IMAGES ===
+function initExampleImages() {
+  if (!B.examplesUl) return;
+  B.examplesUl.querySelectorAll('.example-image-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const src = btn.dataset.src;
+      if (!src) return;
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => processImageData(img);
+      img.onerror = () => J.playError();
+      img.src = src;
+    });
+  });
 }
 
 function processImageData(img) {
@@ -534,48 +548,18 @@ function processImageData(img) {
     deletedLayers: [],
   });
 
-  try {
   document.body.classList.add('has-image');
-  window.__step = 'after_hasimage';
   J.playSuccess();
-  window.__step = 'after_play_success';
 
   // Render color space and samples immediately
   renderColorSpace([]);
-  window.__step = 'after_render_colorspace';
   renderColorSamples([]);
-  window.__step = 'after_render_samples';
 
   // Trace if auto-trace is on
-  console.log('[SVG_MKR] processImageData done: autoTrace=', S.autoTrace, 'hasImage=', S.hasImage);
   if (S.autoTrace) {
-    window.__step = 'calling_traceToSVG';
     traceToSVG();
-    window.__step = 'traceToSVG_returned';
-  }
-  } catch (e) {
-  window.__processError = e.message;
-  window.__processStack = e.stack;
-  console.error('[SVG_MKR] processImageData error:', e);
   }
 }
-
-// Debug helper
-window.__debug = function() {
-  return JSON.stringify({
-    hasImage: S.hasImage,
-    autoTrace: S.autoTrace,
-    currentImageData: S.currentImageData ? 'set (' + S.currentImageData.width + 'x' + S.currentImageData.height + ')' : null,
-    colorCount: S.colorCount,
-    baseDataUrl: S.baseDataUrl ? 'set' : null,
-    canvasWidth: B.canvas ? B.canvas.width : 'missing',
-    canvasHeight: B.canvas ? B.canvas.height : 'missing',
-    hasImageClass: document.body.classList.contains('has-image'),
-    hasExtractedClass: document.body.classList.contains('has-extracted'),
-    fileInputId: document.getElementById('fileInput') ? 'found' : 'missing',
-    uploadAreaId: document.getElementById('uploadArea') ? 'found' : 'missing',
-  });
-};
 
 // === GET PROCESSED DATA URL (with hue/sat filters) ===
 function getProcessedDataUrl() {
@@ -601,9 +585,7 @@ function getProcessedDataUrl() {
 
 // === SVG TRACING ===
 function traceToSVG() {
-  window.__traceResult = { step: 'start', hasImage: S.hasImage, hasIData: !!S.currentImageData };
   if (!S.hasImage || !S.currentImageData) {
-    window.__traceResult.step = 'early_return';
     return;
   }
 
@@ -614,7 +596,6 @@ function traceToSVG() {
   }
 
   const dataUrl = getProcessedDataUrl();
-  window.__traceResult.dataUrl = dataUrl ? dataUrl.substring(0, 40) + '...' : 'null';
   if (!dataUrl) {
     setState({ isExtracting: false });
     if (B.loading) { B.loading.style.display = 'none'; B.loading.classList.remove('visible'); }
@@ -635,21 +616,14 @@ function traceToSVG() {
     setState({ isExtracting: false });
     if (B.loading) { B.loading.style.display = 'none'; B.loading.classList.remove('visible'); }
     J.playError();
-    console.error('[SVG_MKR] Tracing timed out');
   }, TRACE_TIMEOUT);
 
   try {
     ImageTracer.imageToSVG(dataUrl, (svgString) => {
-      console.log('[SVG_MKR] ImageTracer callback fired, svg length:', svgString ? svgString.length : 'null');
-    window.__traceResult.step = 'callback';
-    window.__traceResult.svgLength = svgString ? svgString.length : 0;
       clearTimeout(timeout);
       parseSVG(svgString);
     }, options);
   } catch (e) {
-    console.error('[SVG_MKR] ImageTracer error:', e.message);
-    window.__traceResult.step = 'error';
-    window.__traceResult.error = e.message;
     clearTimeout(timeout);
     setState({ isExtracting: false });
     if (B.loading) { B.loading.style.display = 'none'; B.loading.classList.remove('visible'); }
