@@ -172,7 +172,11 @@ class FaviconManager {
 
 // === INIT ===
 let nloupe, ncolorSpace, ndebug;
-window.addEventListener('DOMContentLoaded', () => {
+
+let _initialized = false;
+function init() {
+  if (_initialized) return;
+  _initialized = true;
   cacheDOM();
   J.init();
   const canvas = B.canvas;
@@ -257,7 +261,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // === Effect toggles ===
   initEffectToggles();
-});
+}
+
+window.addEventListener('DOMContentLoaded', init);
+if (document.readyState === 'interactive' || document.readyState === 'complete') {
+  init();
+}
 
 // === DOM CACHE ===
 function cacheDOM() {
