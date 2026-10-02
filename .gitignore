@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+*.local
+
+# Build output
+dist/
+
+# Old React/Vite config (project is now vanilla HTML/CSS/JS)
+package.json
+package-lock.json
+tsconfig.json
+tsconfig.node.json
+vite.config.ts
+src/
+public/

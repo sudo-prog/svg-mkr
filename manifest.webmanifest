@@ -1,0 +1,16 @@
+{
+  "name": "SVG_MKR",
+  "short_name": "SVG_MKR",
+  "description": "Image to SVG converter with color separation, halftone, and background removal",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#292f2f",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "30x30"
+    }
+  ]
+}
