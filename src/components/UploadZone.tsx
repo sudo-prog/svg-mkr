@@ -1,107 +1,87 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import { Upload, Camera } from 'lucide-react';
 
 interface UploadZoneProps {
   onFileSelect: (source: string) => void;
-  onDrop?: (e: React.DragEvent) => void;
   isLoading?: boolean;
 }
 
-const ACCEPT_ATTR = 'image/*;capture=camera';
-
 /**
- * Centered upload control matching OKPalette's aesthetic:
- * - Large white rectangular upload area
- * - Black monospace text (#0a0f0f)
- * - Handles file picker (Files / Camera) and full-page drag-and-drop.
+ * Centered upload control matching the dark monochrome aesthetic.
+ * Handles file picker, camera capture, and is wired for drag-and-drop from parent.
  */
 export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
-  const fileInputRef = useCallback((el: HTMLInputElement | null) => {
-    // no-op; ref attached below
-  }, []);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFile = (file: File | undefined | null) => {
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
-      reader.onload = ev => onFileSelect(ev.target?.result as string);
+      reader.onload = (ev) => onFileSelect(ev.target?.result as string);
       reader.readAsDataURL(file);
     }
-    e.target.value = '';
   };
 
   const openPicker = () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.onchange = handleFileChange as any;
+    input.onchange = (e) => {
+      const target = e.target as HTMLInputElement;
+      handleFile(target.files?.[0]);
+      target.value = '';
+    };
     input.click();
   };
 
   const openCamera = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/*;capture=environment';
-    input.capture = 'environment';
-    input.onchange = handleFileChange as any;
+    input.accept = 'image/*';
+    input.setAttribute('capture', 'environment');
+    input.onchange = (e) => {
+      const target = e.target as HTMLInputElement;
+      handleFile(target.files?.[0]);
+      target.value = '';
+    };
     input.click();
   };
 
   return (
-    <div className="z-10 flex flex-col items-center gap-3">
+    <div className={`z-10 flex flex-col items-center gap-3 ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+      {/* Large white rectangular upload box */}
       <div
-        className={`relative flex flex-col items-center gap-3 ${
-          isLoading ? 'opacity-50 pointer-events-none' : ''
-        }`}
+        onClick={openPicker}
+        className="w-80 max-w-[90vw] h-44 bg-white border border-white flex items-center justify-center cursor-pointer hover:bg-neutral-100 transition-colors active:scale-[0.99]"
       >
-        {/* Large white rectangular upload box with charcoal monospace text */}
-        <div
-          onClick={openPicker}
-          className="w-80 h-48 bg-white border border-white flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors"
-          style={{ borderWidth: 1 }}
-        >
-          <div className="text-center">
-            <Upload className="mx-auto mb-2 text-charcoal" size={20} />
-            <span className="block text-[11px] font-mono font-bold text-charcoal uppercase tracking-wider">
-              Click to Upload Image / Drop Here / ⌘V
-            </span>
-          </div>
+        <div className="text-center px-4">
+          <Upload className="mx-auto mb-2 text-charcoal" size={22} />
+          <span className="block text-[11px] font-mono font-bold text-charcoal uppercase tracking-wider leading-relaxed">
+            Click to Upload / Drop / Paste
+          </span>
         </div>
+      </div>
 
-        {/* From Files button */}
+      <div className="flex flex-wrap items-center justify-center gap-2">
         <button
           onClick={openPicker}
           disabled={isLoading}
-          className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-white text-[13px] font-mono font-bold text-white hover:bg-white hover:text-charcoal transition-colors disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-white text-[12px] font-mono font-bold text-white hover:bg-white hover:text-charcoal transition-colors disabled:opacity-50"
         >
-          <Upload size={16} />
+          <Upload size={15} />
           From Files
         </button>
 
-        {/* From Camera Roll button */}
         <button
           onClick={openCamera}
           disabled={isLoading}
-          className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-white text-[13px] font-mono font-bold text-white hover:bg-white hover:text-charcoal transition-colors disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-white text-[12px] font-mono font-bold text-white hover:bg-white hover:text-charcoal transition-colors disabled:opacity-50"
         >
-          <Camera size={16} />
-          From Camera Roll
+          <Camera size={15} />
+          Camera
         </button>
-        <label
-          htmlFor="dropzone-file"
-          className="mt-2 text-[10px] font-mono text-white uppercase tracking-wider cursor-pointer"
-        >
-          or drop an image anywhere
-        </label>
-        <input
-          id="dropzone-file"
-          ref={fileInputRef}
-          type="file"
-          accept={ACCEPT_ATTR}
-          onChange={handleFileChange}
-          className="hidden"
-        />
       </div>
+
+      <p className="text-[10px] font-mono text-white/50 uppercase tracking-wider">
+        or drop an image anywhere
+      </p>
     </div>
   );
 }

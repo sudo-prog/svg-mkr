@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { RevolvingText } from './RevolvingText';
 import { UploadZone } from './UploadZone';
 import coreSource from '../core/imageToSvgCore.ts?raw';
@@ -8,9 +8,8 @@ interface LandingProps {
 }
 
 /**
- * Full-viewport landing page matching OKPalette's dark charcoal monochrome aesthetic.
- * Central 3D serif revolving text + white upload box.
- * Top-right: round "Copy Code" button copies the core module source.
+ * Full-viewport landing page — dark charcoal monochrome aesthetic.
+ * Central 3D revolving text + upload box.
  */
 export function Landing({ onImageSelected }: LandingProps) {
   const [copied, setCopied] = useState(false);
@@ -20,7 +19,7 @@ export function Landing({ onImageSelected }: LandingProps) {
     try {
       await navigator.clipboard.writeText(coreSource);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      setTimeout(() => setCopied(false), 1600);
     } catch {
       setCopied(false);
     }
@@ -38,6 +37,27 @@ export function Landing({ onImageSelected }: LandingProps) {
     }
   };
 
+  // Paste support
+  React.useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => onImageSelected(ev.target?.result as string);
+            reader.readAsDataURL(file);
+            break;
+          }
+        }
+      }
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [onImageSelected]);
+
   return (
     <div
       className="fixed inset-0 bg-charcoal text-white flex flex-col items-center justify-center overflow-hidden"
@@ -49,31 +69,31 @@ export function Landing({ onImageSelected }: LandingProps) {
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
     >
-      {/* Top-right round Copy Code button — visible against dark bg with white border */}
+      {/* Copy core source */}
       <button
         onClick={handleCopyCode}
-        className="fixed top-4 right-4 z-50 w-12 h-12 rounded-full border border-white text-white hover:bg-white hover:text-charcoal transition-colors flex items-center justify-center text-[8px] font-mono uppercase tracking-widest leading-tight overflow-hidden"
+        className="fixed top-4 right-4 z-50 w-12 h-12 rounded-full border border-white/80 text-white hover:bg-white hover:text-charcoal transition-colors flex items-center justify-center text-[8px] font-mono uppercase tracking-widest leading-tight"
         title="Copy the pure core module source"
       >
         {copied ? '✓' : 'CODE'}
       </button>
 
-      {/* Central revolving serif text */}
-      <div className="flex-1 flex items-center justify-center">
+      {/* Revolving text */}
+      <div className="flex-1 flex items-center justify-center w-full">
         <RevolvingText text="SVG_MKR" />
       </div>
 
-      {/* Upload zone — large white rectangular box with black monospace */}
-      <div className="mb-12">
+      {/* Upload */}
+      <div className="mb-14 px-4">
         <UploadZone onFileSelect={onImageSelected} />
       </div>
 
-      {/* Subtle footer */}
-      <div className="fixed bottom-0 left-0 right-0 h-10 border-t border-white flex items-center justify-center px-4 text-[10px] font-mono uppercase tracking-wider opacity-40 bg-charcoal z-50">
-        Image to SVG Converter &middot; PWA
+      {/* Footer */}
+      <div className="fixed bottom-0 left-0 right-0 h-10 border-t border-white/30 flex items-center justify-center px-4 text-[10px] font-mono uppercase tracking-wider opacity-50 bg-charcoal z-40">
+        Image to SVG Converter · PWA
       </div>
 
-      {/* Drag-over hint */}
+      {/* Drag overlay */}
       {dragOver && (
         <div className="fixed inset-0 bg-white/10 border-2 border-dashed border-white flex items-center justify-center text-[13px] font-mono text-white z-50 pointer-events-none">
           DROP TO CONVERT

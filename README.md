@@ -1,31 +1,72 @@
 # SVG_MKR — Image to SVG Converter
 
-A vanilla HTML/CSS/JS web app that converts raster images to clean SVGs, inspired by [okpalette.color.pizza](https://okpalette.color.pizza/).
+A fast, browser-based tool that turns raster images into clean multi-color SVGs.
+
+Inspired by [okpalette.color.pizza](https://okpalette.color.pizza/).
 
 ## Features
 
-- **Color extraction** (1–10 colors) via [ImageTracer.js](https://github.com/jankovicsandras/imagetracerjs)
-- **Hue / Saturation** sliders with real-time re-tracing
-- **Auto-trace** toggle — re-processes on every slider change
-- **Per-layer effects** — halftone, distress, and outline on individual color layers
-- **Magic wand** + **eraser** background removal
-- **Loupe** (magnifying glass) over the source image
-- **SVG / PNG export**, copy palette hex, native share
-- **Keyboard shortcuts** — `⌘/Ctrl+I` debug, `Esc` delete layer, `⌘/Ctrl+E` export, `⌘/Ctrl+S` stats
-- No build step — deploy static files directly
+- **Color quantization** (1–10 colors) via frequency histogram + ImageTracer.js
+- **Live controls** — Hue, Saturation, B&W, Invert, Threshold, Halftone
+- **Background removal** — Magic wand + freehand eraser
+- **Per-color editing** — Click to select / delete layers, double-click to recolor
+- **Export** — SVG, PNG, copy SVG to clipboard, native share
+- **PWA** ready (installable, offline-capable)
+- **Paste / drag-and-drop** image support
+
+## Tech Stack
+
+- React 19 + TypeScript
+- Vite 6
+- Tailwind CSS v4
+- ImageTracer.js
+- Lucide icons
+- vite-plugin-pwa
 
 ## Development
 
 ```bash
-# Serve locally
-npx serve .
-# or
-python3 -m http.server 8080
+npm install
+npm run dev
+```
+
+App runs at `http://localhost:3000` (base path `/svg-mkr/` for production).
+
+```bash
+npm run build   # outputs to dist/
+npm run preview
+npm run lint    # tsc --noEmit
+```
+
+## Project Structure
+
+```
+src/
+├── App.tsx                  # Landing ↔ Editor
+├── main.tsx
+├── components/
+│   ├── Landing.tsx
+│   ├── Editor.tsx
+│   ├── ColorPalette.tsx
+│   ├── ExportBar.tsx
+│   ├── UploadZone.tsx
+│   ├── RevolvingText.tsx
+│   └── Toast.tsx
+├── core/
+│   └── imageToSvgCore.ts   # Pure processing pipeline
+├── hooks/
+│   └── useImageProcessor.ts
+└── index.css
 ```
 
 ## Deployment
 
-Static files deployed to `gh-pages` branch. GitHub Pages serves from `gh-pages/`.
+Static build is configured with `base: '/svg-mkr/'` for GitHub Pages.
+
+```bash
+npm run build
+# deploy the contents of dist/ to the gh-pages branch (or any static host)
+```
 
 ## License
 

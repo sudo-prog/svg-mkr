@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MousePointer2, Eraser, Wand2 } from 'lucide-react';
-import ImageTracer from 'imagetracerjs';
-import { floodFill, eraseAt } from '../core/imageToSvgCore';
+import { MousePointer2, Eraser, Wand2, Trash2 } from 'lucide-react';
 import { useImageProcessor } from '../hooks/useImageProcessor';
+import { floodFill, eraseAt } from '../core/imageToSvgCore';
 import { ColorPalette } from './ColorPalette';
 import { ExportBar } from './ExportBar';
 
@@ -10,8 +9,6 @@ export interface EditorProps {
   imageSrc: string | null;
   onBack: () => void;
 }
-
-const MAX_DIM = 1024;
 
 export function Editor({ imageSrc, onBack }: EditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -21,25 +18,24 @@ export function Editor({ imageSrc, onBack }: EditorProps) {
     error,
     options,
     updateOptions,
+    resetOptions,
     loadImage,
     reprocess,
     baseCanvas,
   } = useImageProcessor();
 
-  // UI-local state
   const [tool, setTool] = useState<'select' | 'erase' | 'magicWand'>('select');
-  const [brushSize, setBrushSize] = useState(20);
+  const [brushSize, setBrushSize] = useState(24);
   const [wandTolerance, setWandTolerance] = useState(32);
   const [selectedColor, setSelectedColor] = useState<number | null>(null);
-
   const isDrawingRef = useRef(false);
 
-  // Load image on mount / when imageSrc changes.
+  // Load image when source arrives
   useEffect(() => {
     if (imageSrc) loadImage(imageSrc);
   }, [imageSrc, loadImage]);
 
-  // Render the processed canvas whenever we have a result.
+  // Paint processed result onto visible canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !result) return;
@@ -55,25 +51,6 @@ export function Editor({ imageSrc, onBack }: EditorProps) {
     img.src = result.pngDataUrl;
   }, [result]);
 
-  // Listen for color overrides from the palette native picker.
-  useEffect(() => {
-    const handler = (e: CustomEvent) => {
-      const { idx, color } = e.detail;
-      const overrides = (options.paletteOverrides || []).slice();
-      overrides[idx] = color;
-      updateOptions({ paletteOverrides: overrides });
-    };
-    window.addEventListener('palette-color-change', handler as any);
-    return () => window.removeEventListener('palette-color-change', handler as any);
-  }, [options.paletteOverrides, updateOptions]);
-
-  // Re-process on options change (handled inside the hook via its deps),
-  // but also re-render canvas from result.
-  const reprocessAndRender = () => {
-    reprocess();
-  };
-
-  // Canvas coordinate helper.
   const getCanvasPos = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -86,7 +63,6 @@ export function Editor({ imageSrc, onBack }: EditorProps) {
     };
   };
 
-  // Canvas interaction operates on the *base* canvas (raw image + erasures).
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!baseCanvas) return;
     const pos = getCanvasPos(e);
@@ -95,11 +71,11 @@ export function Editor({ imageSrc, onBack }: EditorProps) {
 
     if (tool === 'magicWand') {
       floodFill(ctx, baseCanvas.width, baseCanvas.height, pos.x, pos.y, wandTolerance);
-      reprocessAndRender();
+      reprocess();
     } else if (tool === 'erase') {
       isDrawingRef.current = true;
       eraseAt(ctx, pos.x, pos.y, brushSize);
-      reprocessAndRender();
+      reprocess();
     }
   };
 
@@ -109,47 +85,37 @@ export function Editor({ imageSrc, onBack }: EditorProps) {
     const ctx = baseCanvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
     eraseAt(ctx, pos.x, pos.y, brushSize);
-    reprocessAndRender();
+    reprocess();
   };
 
   const handlePointerUp = () => {
     isDrawingRef.current = false;
   };
 
-  // Color-count slider: 1 → B&W black, 2 → B&W, 3..10 → palette sizes.
   const handleColorCountChange = (v: number) => {
     updateOptions({ colorCount: v });
-    // colorCount === 1 means pure black → disable palette edits.
     if (v <= 2) setSelectedColor(null);
   };
 
-  // Layer per-color effect toggle.
   const toggleColorDelete = (idx: number) => {
     const dc = options.deletedColors || [];
-    const next = dc.includes(idx) ? dc.filter(d => d !== idx) : [...dc, idx];
+    const next = dc.includes(idx) ? dc.filter((d) => d !== idx) : [...dc, idx];
     updateOptions({ deletedColors: next });
   };
 
-  const runSvgTrace = () => {
-    if (!canvasRef.current) return;
-    const bc = baseCanvas;
-    if (bc) {
-      ImageTracer.imageToSVG(
-        bc.toDataURL('image/png'),
-        (svg: string) => {
-          if (svg) {
-            const blob = new Blob([svg], { type: 'image/svg+xml' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'svg-mkr-output.svg';
-            a.click();
-            URL.revokeObjectURL(url);
-          }
-        },
-        { pathprecision: 3, scale: 1 },
-      );
+  const handlePaletteColorChange = (idx: number, color: { r: number; g: number; b: number }) => {
+    const overrides = (options.paletteOverrides || result?.palette || []).slice();
+    while (overrides.length <= idx) {
+      overrides.push({ r: 0, g: 0, b: 0 });
     }
+    overrides[idx] = color;
+    updateOptions({ paletteOverrides: overrides });
+  };
+
+  const handleBack = () => {
+    resetOptions();
+    setSelectedColor(null);
+    onBack();
   };
 
   if (!imageSrc) {
@@ -160,127 +126,109 @@ export function Editor({ imageSrc, onBack }: EditorProps) {
   return (
     <div className="min-h-screen bg-white text-black font-mono text-xs flex flex-col">
       {/* Header */}
-      <header className="border-b border-black flex items-center justify-between px-4 h-12 shrink-0">
+      <header className="border-b border-black flex items-center justify-between px-4 h-12 shrink-0 sticky top-0 bg-white z-20">
         <button
-          onClick={() => {
-            // Reset state and go back.
-            updateOptions({
-              colorCount: 4,
-              hue: 0,
-              saturation: 100,
-              grayscale: false,
-              invert: false,
-              threshold: null,
-              halftone: false,
-              halftoneSize: 4,
-              deletedColors: [],
-              paletteOverrides: undefined,
-            });
-            onBack();
-          }}
+          onClick={handleBack}
           className="text-[11px] uppercase tracking-widest hover:underline"
         >
           ← Back
         </button>
         <div className="text-[11px] uppercase tracking-widest opacity-50">
-          {result?.palette?.length ? `${result.palette.length} colors` : '—'}
+          {loading ? 'Processing…' : result?.palette?.length ? `${result.palette.length} colors` : '—'}
         </div>
       </header>
 
-      {/* Main canvas + controls */}
-      <main className="flex-1 overflow-auto p-4">
-        <div className="max-w-4xl mx-auto">
-          {/* Live canvas */}
-          <div className="border border-black bg-[#f5f5f5] flex items-center justify-center mb-4 min-h-[400px]">
+      <main className="flex-1 overflow-auto p-4 pb-8">
+        <div className="max-w-3xl mx-auto space-y-4">
+          {/* Canvas */}
+          <div className="border border-black bg-[#f4f4f4] flex items-center justify-center min-h-[320px] relative overflow-hidden">
             {loading && (
-              <div className="text-[11px] uppercase tracking-widest animate-pulse">
-                Processing…
+              <div className="absolute inset-0 flex items-center justify-center bg-white/70 z-10">
+                <div className="text-[11px] uppercase tracking-widest animate-pulse">Processing…</div>
               </div>
             )}
             {error && (
-              <div className="text-[11px] text-red-600 uppercase">{error}</div>
+              <div className="text-[11px] text-red-600 uppercase p-4 text-center">{error}</div>
             )}
-            {!loading && !error && (
+            {!error && (
               <canvas
                 ref={canvasRef}
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerLeave={handlePointerUp}
+                className="max-w-full max-h-[min(70vh,640px)] object-contain touch-none"
                 style={{
-                  cursor:
-                    tool === 'erase' || tool === 'magicWand' ? 'crosshair' : 'default',
-                  maxWidth: '100%',
-                  maxHeight: 'calc(100vh - 200px)',
-                  objectFit: 'contain',
+                  cursor: tool === 'erase' || tool === 'magicWand' ? 'crosshair' : 'default',
                 }}
               />
             )}
           </div>
 
-          {/* Controls */}
-          <div className="space-y-4 border border-black bg-[#fafafa] p-4">
-            {/* Tools row */}
-            <div className="flex gap-2">
+          {/* Controls panel */}
+          <div className="border border-black bg-[#fafafa] p-4 space-y-5">
+            {/* Tools */}
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setTool('select')}
-                className={`p-2 border border-black flex items-center justify-center ${
-                  tool === 'select' ? 'bg-black text-white' : 'hover:bg-[#e0e0e0]'
+                className={`p-2.5 border border-black flex items-center justify-center transition-colors ${
+                  tool === 'select' ? 'bg-black text-white' : 'hover:bg-neutral-200'
                 }`}
                 title="Select"
               >
-                <MousePointer2 size={14} />
+                <MousePointer2 size={15} />
               </button>
               <button
                 onClick={() => setTool('erase')}
-                className={`p-2 border border-black flex items-center justify-center ${
-                  tool === 'erase' ? 'bg-black text-white' : 'hover:bg-[#e0e0e0]'
+                className={`p-2.5 border border-black flex items-center justify-center transition-colors ${
+                  tool === 'erase' ? 'bg-black text-white' : 'hover:bg-neutral-200'
                 }`}
                 title="Eraser"
               >
-                <Eraser size={14} />
+                <Eraser size={15} />
               </button>
               <button
                 onClick={() => setTool('magicWand')}
-                className={`p-2 border border-black flex items-center justify-center ${
-                  tool === 'magicWand' ? 'bg-black text-white' : 'hover:bg-[#e0e0e0]'
+                className={`p-2.5 border border-black flex items-center justify-center transition-colors ${
+                  tool === 'magicWand' ? 'bg-black text-white' : 'hover:bg-neutral-200'
                 }`}
                 title="Magic wand"
               >
-                <Wand2 size={14} />
+                <Wand2 size={15} />
               </button>
+
               {tool === 'erase' && (
-                <>
+                <div className="flex items-center gap-2 ml-2">
                   <input
                     type="range"
-                    min={1}
-                    max={100}
+                    min={2}
+                    max={80}
                     value={brushSize}
-                    onChange={e => setBrushSize(+e.target.value)}
-                    className="w-24 accent-black h-1 ml-auto"
+                    onChange={(e) => setBrushSize(+e.target.value)}
+                    className="w-28 accent-black h-1"
                   />
                   <span className="w-10 text-right text-[10px] opacity-60">{brushSize}px</span>
-                </>
+                </div>
               )}
               {tool === 'magicWand' && (
-                <>
+                <div className="flex items-center gap-2 ml-2">
                   <input
                     type="range"
                     min={0}
                     max={255}
                     value={wandTolerance}
-                    onChange={e => setWandTolerance(+e.target.value)}
-                    className="w-24 accent-black h-1 ml-auto"
+                    onChange={(e) => setWandTolerance(+e.target.value)}
+                    className="w-28 accent-black h-1"
                   />
                   <span className="w-10 text-right text-[10px] opacity-60">{wandTolerance}</span>
-                </>
+                </div>
               )}
             </div>
 
-            {/* Color quantization 1-10 */}
+            {/* Color count */}
             <div>
-              <div className="flex justify-between text-[9px] uppercase opacity-60 mb-1">
-                <span>COLORS</span>
+              <div className="flex justify-between text-[9px] uppercase opacity-60 mb-1.5">
+                <span>Colors</span>
                 <span>{options.colorCount}</span>
               </div>
               <input
@@ -288,33 +236,45 @@ export function Editor({ imageSrc, onBack }: EditorProps) {
                 min={1}
                 max={10}
                 value={options.colorCount}
-                onChange={e => handleColorCountChange(+e.target.value)}
+                onChange={(e) => handleColorCountChange(+e.target.value)}
                 className="w-full accent-black h-1"
               />
-              <div className="text-[9px] opacity-40 mt-1">
-                1 = black · 2 = B&W · 3–10 = palette
-              </div>
+              <div className="text-[9px] opacity-40 mt-1">1 = black · 2 = B&W · 3–10 = palette</div>
             </div>
 
-            {/* Palette boxes */}
+            {/* Palette */}
             {result?.palette && result.palette.length > 0 && options.colorCount > 2 && (
               <div>
-                <div className="text-[9px] uppercase opacity-60 mb-2">PALETTE</div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[9px] uppercase opacity-60">Palette</div>
+                  {selectedColor !== null && (
+                    <button
+                      onClick={() => toggleColorDelete(selectedColor)}
+                      className="inline-flex items-center gap-1 text-[9px] uppercase opacity-70 hover:opacity-100"
+                      title="Toggle delete selected color"
+                    >
+                      <Trash2 size={11} />
+                      {options.deletedColors?.includes(selectedColor) ? 'Restore' : 'Remove'}
+                    </button>
+                  )}
+                </div>
                 <ColorPalette
                   palette={result.palette}
                   deletedColors={options.deletedColors || []}
                   onToggleDelete={toggleColorDelete}
-                  onSelect={idx => setSelectedColor(idx)}
+                  onSelect={setSelectedColor}
+                  onColorChange={handlePaletteColorChange}
                   selected={selectedColor}
                 />
+                <div className="text-[9px] opacity-40 mt-1.5">Click select · Double-click edit color</div>
               </div>
             )}
 
-            {/* Filters */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Filters grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
               <div>
                 <div className="flex justify-between text-[9px] uppercase opacity-60 mb-1">
-                  <span>HUE</span>
+                  <span>Hue</span>
                   <span>{options.hue}°</span>
                 </div>
                 <input
@@ -322,13 +282,13 @@ export function Editor({ imageSrc, onBack }: EditorProps) {
                   min={-180}
                   max={180}
                   value={options.hue}
-                  onChange={e => updateOptions({ hue: +e.target.value })}
+                  onChange={(e) => updateOptions({ hue: +e.target.value })}
                   className="w-full accent-black h-1"
                 />
               </div>
               <div>
                 <div className="flex justify-between text-[9px] uppercase opacity-60 mb-1">
-                  <span>SAT</span>
+                  <span>Saturation</span>
                   <span>{options.saturation}%</span>
                 </div>
                 <input
@@ -336,56 +296,63 @@ export function Editor({ imageSrc, onBack }: EditorProps) {
                   min={0}
                   max={200}
                   value={options.saturation}
-                  onChange={e => updateOptions({ saturation: +e.target.value })}
+                  onChange={(e) => updateOptions({ saturation: +e.target.value })}
                   className="w-full accent-black h-1"
                 />
               </div>
-              <label className="flex items-center gap-2 text-[10px]">
+
+              <label className="flex items-center gap-2 text-[10px] uppercase cursor-pointer">
                 <input
                   type="checkbox"
                   checked={options.grayscale}
-                  onChange={e => updateOptions({ grayscale: e.target.checked })}
+                  onChange={(e) => updateOptions({ grayscale: e.target.checked })}
+                  className="accent-black"
                 />
                 B&W
               </label>
-              <label className="flex items-center gap-2 text-[10px]">
+              <label className="flex items-center gap-2 text-[10px] uppercase cursor-pointer">
                 <input
                   type="checkbox"
                   checked={options.invert}
-                  onChange={e => updateOptions({ invert: e.target.checked })}
+                  onChange={(e) => updateOptions({ invert: e.target.checked })}
+                  className="accent-black"
                 />
-                INVERT
+                Invert
               </label>
+
               <div>
                 <div className="flex justify-between text-[9px] uppercase opacity-60 mb-1">
-                  <span>THRESHOLD</span>
-                  <span>{options.threshold === null ? 'OFF' : options.threshold}</span>
+                  <span>Threshold</span>
+                  <span>{options.threshold === null ? 'Off' : options.threshold}</span>
                 </div>
                 <input
                   type="range"
                   min={0}
                   max={255}
                   value={options.threshold ?? 0}
-                  onChange={e => {
+                  onChange={(e) => {
                     const v = +e.target.value;
                     updateOptions({ threshold: v === 0 ? null : v, halftone: false });
                   }}
                   className="w-full accent-black h-1"
                 />
               </div>
-              <label className="flex items-center gap-2 text-[10px]">
+
+              <label className="flex items-center gap-2 text-[10px] uppercase cursor-pointer">
                 <input
                   type="checkbox"
                   checked={options.halftone}
-                  onChange={e => updateOptions({ halftone: e.target.checked, threshold: null })}
+                  onChange={(e) => updateOptions({ halftone: e.target.checked, threshold: null })}
+                  className="accent-black"
                 />
-                HALFTONE
+                Halftone
               </label>
             </div>
+
             {options.halftone && (
               <div>
                 <div className="flex justify-between text-[9px] uppercase opacity-60 mb-1">
-                  <span>SIZE</span>
+                  <span>Halftone Size</span>
                   <span>{options.halftoneSize}px</span>
                 </div>
                 <input
@@ -393,7 +360,7 @@ export function Editor({ imageSrc, onBack }: EditorProps) {
                   min={2}
                   max={20}
                   value={options.halftoneSize}
-                  onChange={e => updateOptions({ halftoneSize: +e.target.value })}
+                  onChange={(e) => updateOptions({	ableofcontentsftoneSize: +e.target.value })}
                   className="w-full accent-black h-1"
                 />
               </div>
@@ -401,27 +368,36 @@ export function Editor({ imageSrc, onBack }: EditorProps) {
           </div>
 
           {/* Export */}
-          <div className="mt-4 flex justify-between items-center">
+          <div className="flex justify-between items-center flex-wrap gap-2 pt-1">
             <ExportBar
               pngDataUrl={result?.pngDataUrl || ''}
               svgString={result?.svgString || ''}
               showExport={!!result}
-              onDownloadSvg={runSvgTrace}
-              onDownloadPng={() => {
-                if (!canvasRef.current) return;
+              onDownloadSvg={() => {
+                if (!result?.svgString) return;
+                const blob = new Blob([result.svgString], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = canvasRef.current.toDataURL('image/png');
-                a.download = 'svg-mkr-output.png';
+                a.href = url;
+                a.download = 'svg-mkr.svg';
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              onDownloadPng={() => {
+                if (!result?.pngDataUrl) return;
+                const a = document.createElement('a');
+                a.href = result.pngDataUrl;
+                a.download = 'svg-mkr.png';
                 a.click();
               }}
               onShare={async () => {
-                if (!canvasRef.current || !navigator.share) return;
+                if (!result?.pngDataUrl || !navigator.share) return;
                 try {
-                  const blob = await (await fetch(canvasRef.current.toDataURL('image/png'))).blob();
-                  const file = new File([blob], 'svg-mkr-output.png', { type: 'image/png' });
-                  await navigator.share({ title: 'SVG_MKR output', files: [file] });
-                } catch (e) {
-                  // fallback to download
+                  const blob = await (await fetch(result.pngDataUrl)).blob();
+                  const file = new File([blob], 'svg-mkr.png', { type: 'image/png' });
+                  await navigator.share({ title: 'SVG_MKR', files: [file] });
+                } catch {
+                  // user cancelled or unsupported
                 }
               }}
               onCopySvg={() => {
@@ -432,10 +408,8 @@ export function Editor({ imageSrc, onBack }: EditorProps) {
         </div>
       </main>
 
-      <footer className="border-t border-black flex items-center justify-center px-4 h-10 bg-black text-white">
-        <span className="text-[9px] uppercase tracking-wider">
-          SVG_MKR v2 — Image to SVG Converter
-        </span>
+      <footer className="border-t border-black flex items-center justify-center px-4 h-10 bg-black text-white shrink-0">
+        <span className="text-[9px] uppercase tracking-wider">SVG_MKR — Image to SVG</span>
       </footer>
     </div>
   );

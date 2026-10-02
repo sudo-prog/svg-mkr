@@ -1,15 +1,22 @@
 # Dependencies
 node_modules/
+
+# Build
+dist/
 *.local
 
-# Build output
-dist/
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
 
-# Old React/Vite config (project is now vanilla HTML/CSS/JS)
-package.json
-package-lock.json
-tsconfig.json
-tsconfig.node.json
-vite.config.ts
-src/
-public/
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env
+.env
+.env.*

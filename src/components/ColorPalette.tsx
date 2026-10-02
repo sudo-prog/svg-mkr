@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { X } from 'lucide-react';
 
 interface ColorBox {
@@ -12,27 +12,32 @@ interface ColorPaletteProps {
   deletedColors: number[];
   onToggleDelete: (index: number) => void;
   onSelect: (index: number) => void;
+  onColorChange: (index: number, color: ColorBox) => void;
   selected: number | null;
 }
 
+function toHex({ r, g, b }: ColorBox): string {
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
 /**
- * Interactive color boxes: single-click selects, double-click
- * opens native color picker. Deleted colors show an X badge.
+ * Interactive color boxes:
+ * - single-click selects
+ * - double-click opens native color picker and updates the palette
+ * - deleted colors show an X badge and reduced opacity
  */
 export function ColorPalette({
   palette,
   deletedColors,
   onToggleDelete,
   onSelect,
+  onColorChange,
   selected,
 }: ColorPaletteProps) {
-  const [nativePickerIdx, setNativePickerIdx] = useState<number | null>(null);
-
   const handleDoubleClick = (idx: number, color: ColorBox) => {
-    setNativePickerIdx(idx);
     const input = document.createElement('input');
     input.type = 'color';
-    input.value = `#${color.r.toString(16).padStart(2, '0')}${color.g.toString(16).padStart(2, '0')}${color.b.toString(16).padStart(2, '0')}`;
+    input.value = toHex(color);
     input.oninput = () => {
       const v = input.value;
       const r = parseInt(v.slice(1, 3), 16);
@@ -43,37 +48,27 @@ export function ColorPalette({
     input.click();
   };
 
-  const onColorChange = (idx: number, color: ColorBox) => {
-    // Caller provides paletteOverrides via parent; here we just emit.
-    // The actual override update lives in the parent hook.
-    (window as any).__svg_mkr_override = (window as any).__svg_mkr_override || {};
-    (window as any).__svg_mkr_override[idx] = color;
-    // Notify via custom event so parent can react.
-    window.dispatchEvent(new CustomEvent('palette-color-change', { detail: { idx, color } }));
-    setNativePickerIdx(null);
-  };
-
   if (!palette || palette.length === 0) return null;
 
   return (
     <div className="flex flex-wrap gap-2">
       {palette.map((p, i) => {
         const isDeleted = deletedColors.includes(i);
-        const hex = `#${p.r.toString(16).padStart(2, '0')}${p.g.toString(16).padStart(2, '0')}${p.b.toString(16).padStart(2, '0')}`;
+        const hex = toHex(p);
         return (
           <div
             key={i}
             onClick={() => onSelect(i)}
             onDoubleClick={() => handleDoubleClick(i, p)}
-            className={`relative w-8 h-8 border cursor-pointer transition-all ${
-              isDeleted ? 'opacity-25' : ''
-            } ${selected === i ? 'ring-2 ring-black' : 'hover:brightness-110'}`}
+            className={`relative w-9 h-9 border border-black cursor-pointer transition-all ${
+              isDeleted ? 'opacity-30' : ''
+            } ${selected === i ? 'ring-2 ring-offset-1 ring-black' : 'hover:brightness-110'}`}
             style={{ backgroundColor: hex }}
-            title={`Color ${i + 1}: ${hex}`}
+            title={`${hex} — click select, double-click edit`}
           >
             {isDeleted && (
-              <div className="absolute inset-0 flex items-center justify-center text-red-600">
-                <X size={12} />
+              <div className="absolute inset-0 flex items-center justify-center text-red-600 bg-white/40">
+                <X size={14} strokeWidth={2.5} />
               </div>
             )}
           </div>
